@@ -13,6 +13,7 @@ import { X } from 'lucide-react' // Import X icon for removing files
 import Loader from '@/components/ui/loader'
 import AdminSidebar from '@/components/sidebar/adminSidebar'
 import InfoBar from '@/components/infobar/infobar'
+import { useParams } from 'next/navigation'
 
 type Ticket = {
     _id: string;
@@ -32,8 +33,9 @@ type Ticket = {
     }>;
 };
 
-export default function TicketDetails({ params }: { params: { id: string } }) {
+export default function TicketDetails() {
     const [ticket, setTicket] = useState<Ticket | null>(null)
+    const { id } = useParams(); // Accessing dynamic `id` from the URL
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
     const [comment, setComment] = useState<string>('')
     const [statusToUpdate, setStatusToUpdate] = useState<string>('') // Store the status to update
@@ -50,7 +52,7 @@ export default function TicketDetails({ params }: { params: { id: string } }) {
         const fetchTicket = async () => {
             try {
                 setLoading(true); // Set loading to true before fetching
-                const response = await axios.get(`/api/tickets/${params.id}`)
+                const response = await axios.get(`/api/tickets/${id}`)
                 const sortedComments = response.data.comments.sort(
                     (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                 )
@@ -62,7 +64,8 @@ export default function TicketDetails({ params }: { params: { id: string } }) {
             }
         }
         fetchTicket()
-    }, [params.id])
+    }, [id])
+
     const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setComment(e.target.value)
     }
@@ -89,12 +92,12 @@ export default function TicketDetails({ params }: { params: { id: string } }) {
                     fileUrls.push(...uploadResponse.data.fileUrls)
                 }
 
-                const response = await axios.post(`/api/tickets/${params.id}/comments`, { comment, fileUrls })
+                const response = await axios.post(`/api/tickets/${id}/comments`, { comment, fileUrls })
                 console.log('Comment response:', response.data) // Add this line
 
                 setComment('')
                 setFiles([])
-                const updatedTicketResponse = await axios.get(`/api/tickets/${params.id}`)
+                const updatedTicketResponse = await axios.get(`/api/tickets/${id}`)
                 const sortedComments = updatedTicketResponse.data.comments.sort(
                     (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                 )
@@ -121,7 +124,7 @@ export default function TicketDetails({ params }: { params: { id: string } }) {
                 }
 
                 // Post the comment with the status update
-                await axios.patch(`/api/tickets/${params.id}/status`, {
+                await axios.patch(`/api/tickets/${id}/status`, {
                     status: statusToUpdate,
                     comment,
                     fileUrls
@@ -132,7 +135,7 @@ export default function TicketDetails({ params }: { params: { id: string } }) {
                 setFiles([]) // Reset files
 
                 // Fetch the updated ticket
-                const updatedTicketResponse = await axios.get(`/api/tickets/${params.id}`)
+                const updatedTicketResponse = await axios.get(`/api/tickets/${id}`)
                 setTicket(updatedTicketResponse.data)
                 const sortedComments = updatedTicketResponse.data.comments.sort(
                     (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

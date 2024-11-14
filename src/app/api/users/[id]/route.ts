@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 connectDB();
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: any }) {
     const { id } = params;
 
     try {
