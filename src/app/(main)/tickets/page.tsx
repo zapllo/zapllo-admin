@@ -57,8 +57,11 @@ export default function TicketDashboard({ }: Props) {
                 <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
                 <div className="w-full overflow-y-scroll scrollbar-hide  h-screen">
+                    <div className="">
                     <InfoBar />
-                    <div className={`${isCollapsed ? "ml-16" : "ml-0"
+
+                    </div>
+                    <div className={`${isCollapsed ? "ml-20" : "ml-0"
                         }`}>
                         <TicketsTable setIsCollapsed={setIsCollapsed} isCollapsed={isCollapsed} />
                     </div>

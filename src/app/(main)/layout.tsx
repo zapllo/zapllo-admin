@@ -12,7 +12,7 @@ import React, { useEffect, useState } from "react";
 
 type Props = { children: React.ReactNode };
 
-const Layout = (props: Props) => {
+const Layout = ({ children }: Props) => {
     const router = useRouter();
     const pathname = usePathname();
     const [isVisible, setIsVisible] = useState(true);
@@ -21,7 +21,7 @@ const Layout = (props: Props) => {
     const [trialExpires, setTrialExpires] = useState<Date | null>(null);
     const [timeMessage, setTimeMessage] = useState("");
     const [userLoading, setUserLoading] = useState<boolean | null>(false);
-    const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const [isCollapsed, setIsCollapsed] = React.useState(true);
 
 
     const handleClose = () => setIsVisible(false);
@@ -60,7 +60,7 @@ const Layout = (props: Props) => {
                 <div className="w-full overflow-hidden h-screen">
                     <InfoBar />
                     <div className={`${isCollapsed ? "ml-0" : "ml-0"
-                        }`}>{props.children}</div>
+                        }`}>{children}</div>
                 </div>
             </div>
         </div>

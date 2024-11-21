@@ -53,7 +53,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
     const menuItems = [
         { name: "Dashboard", icon: Home, link: "/dashboard" },
         { name: "Tickets", icon: Ticket, link: "/tickets" },
-        { name: "Workspaces", icon: Users2, link: "/admin/workspaces", hasGradient: true },
+        { name: "Workspaces", icon: Users2, link: "/workspaces", hasGradient: true },
         { name: "Subscriptions", icon: Wallet, link: "/admin/subscriptions" },
         { name: "Announcements", icon: Megaphone, link: "/admin/announcements" },
         { name: "Tutorials", icon: VideoIcon, link: "/admin/tutorials" },
@@ -64,7 +64,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
         { name: "Reports", icon: ChartLineIcon, link: "/admin/reports" },
         { name: "Referrals", icon: UserSquare2, link: "/admin/referrals" },
         { name: "Leads", icon: UserRoundSearch, link: "/admin/leads" },
-        { name: "Onboarding Logs", icon: UserRoundPlusIcon, link: "/admin/onboarding-logs" },
+        { name: "Onboarding Logs", icon: UserRoundPlusIcon, link: "/onboardingLogs" },
         { name: "Roles & Permissions", icon: UserPlus2, link: "/admin/roles-permissions" },
         { name: "Task Templates", icon: Grid2X2PlusIcon, link: "/admin/task-templates" },
         { name: "Events", icon: MegaphoneIcon, link: "/admin/events" },

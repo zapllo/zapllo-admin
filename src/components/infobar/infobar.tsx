@@ -118,10 +118,10 @@ const InfoBar = (props: Props) => {
   const getPageTitle = () => {
     if (pathName === "/dashboard") {
       return "Admin Dashboard ";
-    } else if (pathName === "/dashboard/tasks") {
-      return "Task Management";
-    } else if (pathName === "/dashboard/teams") {
-      return "My Team";
+    } else if (pathName === "/tickets") {
+      return "Tickets Management";
+    } else if (pathName === "/workspaces") {
+      return "Workspaces";
     } else if (pathName === "/dashboard/settings") {
       return "Settings";
     } else if (pathName === "/dashboard/settings/categories") {
@@ -195,7 +195,7 @@ const InfoBar = (props: Props) => {
         <div className="  items-center w-[100%] py-2 ml-6 z-[10] flex flex-row  bg-[#04061E]">
           {/* <img src='/icons/ellipse.png' className='absolute h-[50%] z-[10]   opacity-30 -ml-32 ' /> */}
           <div
-            className={`flex ml-4  items-center  ${pathName === "/dashboard" ? "text- ml-[6%] w-screen" : ""
+            className={`flex   items-center   ml-[6%] w-screen
               }`}
           >
             <h1 className={`text-md mt-1 text-white font-bold `}>
