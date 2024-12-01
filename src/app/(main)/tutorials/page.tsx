@@ -1,7 +1,9 @@
 "use client";
 
+import Dashboard from "@/components/dashboard";
 import InfoBar from "@/components/infobar/infobar";
 import AdminSidebar from "@/components/sidebar/adminSidebar";
+import Tutorials from "@/components/tutorials";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { formatDistanceToNow, intervalToDuration } from "date-fns";
@@ -10,10 +12,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
-type Props = { children: React.ReactNode };
+type Props = {}
 
-const Layout = ({ children }: Props) => {
-    const router = useRouter();
+export default function TutorialsPage({ }: Props) {
     const pathname = usePathname();
     const [isVisible, setIsVisible] = useState(true);
     const [isPro, setIsPro] = useState(false);
@@ -21,21 +22,7 @@ const Layout = ({ children }: Props) => {
     const [trialExpires, setTrialExpires] = useState<Date | null>(null);
     const [timeMessage, setTimeMessage] = useState("");
     const [userLoading, setUserLoading] = useState<boolean | null>(false);
-    const [isCollapsed, setIsCollapsed] = React.useState(true);
-    const [announcements, setAnnouncements] = useState<any[]>([]);
-
-    useEffect(() => {
-        const fetchActiveAnnouncements = async () => {
-            try {
-                const response = await axios.get("/api/announcements");
-                setAnnouncements(response.data.attachments);
-            } catch (error) {
-                console.error("Error fetching active announcements:", error);
-            }
-        };
-
-        fetchActiveAnnouncements();
-    }, []);
+    const [isCollapsed, setIsCollapsed] = React.useState(false);
 
 
     const handleClose = () => setIsVisible(false);
@@ -62,23 +49,21 @@ const Layout = ({ children }: Props) => {
 
         getUserDetails();
     }, []);
-
-
     return (
         <div>
             <div
-                className={`flex overflow-hidden dark:bg-[#04061E] scrollbar-hide h-full w-full`}
+                className={`flex  dark:bg-[#04061E] scrollbar-hide h-full w-full`}
             >
                 <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
-                <div className="w-full overflow-hidden h-screen">
+                <div className="w-full overflow-y-scroll scrollbar-hide  h-screen">
                     <InfoBar />
-                    <div className={`${isCollapsed ? "ml-0" : "ml-0"
-                        }`}>{children}</div>
+                    <div className={`${isCollapsed ? "ml-20" : "ml-0"
+                        }`}>
+                     <Tutorials isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed}/>
+                    </div>
                 </div>
             </div>
         </div>
-    );
-};
-
-export default Layout;
+    )
+}

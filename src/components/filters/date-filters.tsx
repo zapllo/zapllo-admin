@@ -25,7 +25,7 @@ export default function DateFilters({ onDateFilterChange }: Props) {
                         key={filter}
                         variant={selectedFilter === filter ? "default" : "ghost"}
                         onClick={() => handleFilterChange(filter)}
-                        className={selectedFilter === filter ? "bg-transparent border text-white" : "text-gray-400 hover:text-gray-400 hover:bg-transparent"}
+                        className={selectedFilter === filter ? "b  text-xs h-7 text-white bg-[#815bf5] hover:bg-[#815bf5]" : "text-gray-400 h-7 border text-xs border-gray-700 hover:text-gray-400 hover:bg-transparent"}
                     >
                         {filter}
                     </Button>

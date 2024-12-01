@@ -31,6 +31,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [extensionDays, setExtensionDays] = useState<number | undefined>();
+    const [extendOpen, setExtendOpen] = useState(false);
 
     useEffect(() => {
         const fetchOrganizations = async () => {
@@ -139,6 +140,66 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
         setSelectedDateFilter(filter);
     };
 
+
+    const extendTrialPeriod = async (organizationId: any) => {
+        try {
+            const newTrialPeriod = new Date();
+            newTrialPeriod.setMonth(newTrialPeriod.getMonth() + 1); // Extend by 1 month
+
+            const res = await fetch('/api/organization/admin', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ organizationId, extensionDays }),
+            });
+            const data = await res.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert('Trial period extended successfully');
+                // Optionally, refetch organizations to update the UI
+                // fetchOrganizations();
+                setOrganizations((prevOrganizations: any) =>
+                    prevOrganizations.map((org: any) =>
+                        org._id === organizationId ? { ...org, trialExpires: data.data.trialExpires } : org
+                    )
+                );
+            }
+        } catch (error: any) {
+            alert(error.message);
+        }
+    };
+
+    const revokeTrialPeriod = async (organizationId: any) => {
+        try {
+            const res = await fetch('/api/organizations/admin', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ organizationId, revoke: true }),
+            });
+            const data = await res.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert('Trial period revoked successfully');
+                setOrganizations((prevOrganizations: any) =>
+                    prevOrganizations.map((org: any) =>
+                        org._id === organizationId ? { ...org, trialExpires: data.data.trialExpires } : org
+                    )
+                );
+            }
+        } catch (error: any) {
+            alert(error.message);
+        }
+    };
+
+
+
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error: {error}</div>;
 
@@ -155,6 +216,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                                 key={status}
                                 variant={statusFilter === status ? "default" : "outline"}
                                 onClick={() => setStatusFilter(status)}
+                                className={statusFilter === status ? "b  text-xs h-7 text-white bg-[#815bf5] hover:bg-[#815bf5]" : "text-gray-400 h-7 border text-xs border-gray-700 hover:text-gray-400 hover:bg-transparent"}
                             >
                                 {status}
                             </Button>
@@ -165,29 +227,64 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                     <DateFilters onDateFilterChange={handleDateFilterChange} />
 
                     {/* Table Layout */}
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full table-auto border-collapse border border-gray-800 text-sm">
+                    <div className="overflow-x-auto border  rounded-xl border-gray-800 mt-4">
+                        <table className="min-w-full  table-auto border-collapse rounded-xl  border-gray-800 text-xs">
                             <thead>
-                                <tr className="bg-gray-900 text-left">
-                                    <th className="border border-gray-800 px-4 py-2">Organization Name</th>
-                                    <th className="border border-gray-800 px-4 py-2">Org Admin</th>
-                                    <th className="border border-gray-800 px-4 py-2">Email</th>
-                                    <th className="border border-gray-800 px-4 py-2">WhatsApp Number</th>
-                                    <th className="border border-gray-800 px-4 py-2">Trial Expires</th>
+                                <tr className="text-left border-b rounded-xl border-gray-800">
+                                    <th className=" border-gray-800 px-4 py-2">Organization Name</th>
+                                    <th className=" border-gray-800 px-4 py-2">Org Admin</th>
+                                    <th className=" border-gray-800 px-4 py-2">Email</th>
+                                    <th className=" border-gray-800 px-4 py-2">WhatsApp Number</th>
+                                    <th className=" border-gray-800 px-4 py-2">Trial Expires</th>
+                                    <th className=" border-gray-800 px-4 py-2">Action</th>
+
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredOrganizations.map((org) => (
-                                    <tr key={org._id} className="hover:bg-gray-800">
-                                        <td className="border border-gray-800 px-4 py-2">{org.companyName}</td>
-                                        <td className="border border-gray-800 px-4 py-2">{org.orgAdmin || "No Admin"}</td>
-                                        <td className="border border-gray-800 px-4 py-2">{org.email}</td>
-                                        <td className="border border-gray-800 px-4 py-2">{org.whatsappNo}</td>
-                                        <td className="border border-gray-800 px-4 py-2">{new Date(org.trialExpires).toLocaleDateString()}</td>
+
+                                    <tr key={org._id} className="border-b border-gray-800">
+                                        <td className=" border-gray-800 px-4 py-2">{org.companyName}</td>
+                                        <td className=" border-gray-800 px-4 py-2">{org.orgAdmin || "No Admin"}</td>
+                                        <td className=" border-gray-800 px-4 py-2">{org.email}</td>
+                                        <td className=" border-gray-800 px-4 py-2">{org.whatsappNo}</td>
+                                        <td className=" border-gray-800 px-4 py-2">{new Date(org.trialExpires).toLocaleDateString()}</td>
+                                        <td className="">
+                                            <div className='space-x-2 p-2 flex'>
+                                                <Button
+                                                    // onClick={() => extendTrialPeriod(org._id)}
+                                                    onClick={() => setExtendOpen(true)}
+                                                    className='bg-transparent border h-7 text-xs text-[#FC8929] border-[#FC8929]'
+                                                >
+                                                    Extend Days
+                                                </Button>
+                                                <Button onClick={() => revokeTrialPeriod(org._id)} variant="destructive" className="text-xs h-7 border bg-transparent text-[#815BF5] border-[#815BF5]">
+                                                    Revoke Trial
+                                                </Button>
+                                            </div>
+                                            <Dialog open={extendOpen} onOpenChange={() => setExtendOpen(false)}>
+                                                <DialogContent className="p-6">
+                                                    <div className="flex justify-center">
+                                                        <img src="/extend.png" />
+
+                                                    </div>
+                                                    <h1 className="text-white text-center">Are you sure you want to extend your days? </h1>
+                                                    <input type="text" className="bg-transparent text-white border outline-none p-2 rounded border-gray-800 " placeholder="Enter the days you want to extend" />
+                                                    <Button
+                                                        onClick={() => extendTrialPeriod(org._id)}
+                                                        className='bg-transparent w-fit justify-center h-7 text-xs bg-[#815bf5] '
+                                                    >
+                                                        Extend Days
+                                                    </Button>
+                                                </DialogContent>
+
+                                            </Dialog>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+
                     </div>
                 </main>
             </div>

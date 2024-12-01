@@ -12,11 +12,11 @@ type StatsProps = {
 
 export default function Stats({ statsData }: StatsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 h-22">
-      <Card className="bg-[#0A0D28] border-none text-white">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 ">
+      <Card className="bg-[#0A0D28] items-center flex h-32 rounded-2xl border border-gray-800 -none text-white">
         <CardContent className="flex items-center gap-4 p-6 h-[142px]">
           <div className="rounded-full w-[82px] h-[82px] bg-purple-500/10 flex items-center justify-center">
-            <img src="/tickboard.png" alt="Total Tasks Icon" />
+            <img src="/tickboard.png" alt="Total Tasks Icon" className="" />
           </div>
           <div>
             <p className="text-sm text-[14px] font-medium text-gray-400">TOTAL TASKS</p>
@@ -25,7 +25,7 @@ export default function Stats({ statsData }: StatsProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0D28] border-none text-white">
+      <Card className="bg-[#0A0D28] flex items-center h-32 rounded-2xl border border-gray-800 -none text-white">
         <CardContent className="flex items-center gap-4 p-6 h-[142px]">
           <div className="rounded-full w-[82px] h-[82px] bg-purple-500/10 flex items-center justify-center">
             <img src="/tickcircle.png" alt="Tasks Completed Icon" />
@@ -37,7 +37,7 @@ export default function Stats({ statsData }: StatsProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0D28] border-none text-white">
+      <Card className="bg-[#0A0D28] h-32 flex items-center  rounded-2xl border border-gray-800 text-white">
         <CardContent className="flex items-center gap-4 p-6 h-[142px]">
           <div className="rounded-full w-[82px] h-[82px] bg-purple-500/10 flex items-center justify-center">
             <img src="/building.png" alt="Total Organizations Icon" />
@@ -49,7 +49,7 @@ export default function Stats({ statsData }: StatsProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0D28] border-none text-white">
+      <Card className="bg-[#0A0D28] h-32 flex items-center rounded-2xl border border-gray-800 text-white">
         <CardContent className="flex items-center gap-4 p-6 h-[142px]">
           <div className="rounded-full w-[82px] h-[82px] bg-purple-500/10 flex items-center justify-center">
             <img src="/group.png" alt="Total Users Icon" />

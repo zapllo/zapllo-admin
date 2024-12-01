@@ -55,8 +55,8 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
         { name: "Tickets", icon: Ticket, link: "/tickets" },
         { name: "Workspaces", icon: Users2, link: "/workspaces", hasGradient: true },
         { name: "Subscriptions", icon: Wallet, link: "/admin/subscriptions" },
-        { name: "Announcements", icon: Megaphone, link: "/admin/announcements" },
-        { name: "Tutorials", icon: VideoIcon, link: "/admin/tutorials" },
+        { name: "Announcements", icon: Megaphone, link: "/announcements" },
+        { name: "Tutorials", icon: VideoIcon, link: "/tutorials" },
         { name: "Coupons", icon: TicketCheckIcon, link: "/admin/coupons" },
         { name: "Payments", icon: Wallet2Icon, link: "/admin/payments" },
         { name: "Checklist", icon: CheckCheckIcon, link: "/admin/checklist" },
@@ -92,7 +92,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
                 <Button
                     variant="ghost"
                     size="sm"
-                    className={`h-6 hover:text-white text-white w-6 p-0 bg-[#FC8929] hover:bg-[#FC8929] rounded-full ${
+                    className={`h-6 hover:text-white text-white w-6 p-0 bg-[#37384B] hover:bg-[#37384B] rounded-full ${
                         isCollapsed ? "ml-12 absolute" : ""
                     }`}
                     onClick={() => setIsCollapsed(!isCollapsed)}
@@ -115,14 +115,14 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
                                     href={item.link}
                                     className={cn(
                                         "flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white transition-colors group relative overflow-hidden",
-                                        pathname === item.link ? "bg-[#FC8929] text-white" : "",
+                                        pathname === item.link ? "bg-[#FC8929]  text-white" : "",
                                         isCollapsed && "justify-center"
                                     )}
                                 >
                                     <item.icon
                                         className={cn(
                                             "h-5 w-5 shrink-0",
-                                            isCollapsed && "h-6 w-6"
+                                            isCollapsed && "h-5 w-5"
                                         )}
                                     />
                                     {!isCollapsed && <span>{item.name}</span>}

@@ -98,10 +98,10 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
   });
 
   const mockStatsData = {
-    totalTasks: 101945,
-    completedTasks: 92945,
-    totalOrganizations: 12945,
-    totalUsers: 24945,
+    totalTasks: 456983,
+    completedTasks: 382927,
+    totalOrganizations: 10559,
+    totalUsers: 34899,
   };
 
   // const [isCollapsed, setIsCollapsed] = React.useState(false);
@@ -206,39 +206,45 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
         {/* Main Content */}
         <main className="p-6  ">
           {/* Stats */}
-          <Stats statsData={filteredStatsData} />
+          <Stats statsData={mockStatsData} />
 
 
 
           <DateFilters onDateFilterChange={setSelectedDateFilter} />
 
           {/* Status Filters */}
-          <div className="flex items-center mb-4 justify-between">
-            <div className="flex gap-2 mt-6">
-              {statusFilters.map((filter) => (
-                <Button
-                  key={filter}
-                  variant={selectedStatusFilter === filter ? "default" : "ghost"}
-                  onClick={() => setSelectedStatusFilter(filter)}
-                  className={selectedStatusFilter === filter ? "text-white border" : "text-gray-400 border"}
-                >
-                  {filter}
-                </Button>
-              ))}
+          <div className="">
+            <div className="flex items-center mb-4 justify-between">
+              <div className="flex gap-2 mt-12">
+                {statusFilters.map((filter) => (
+                  <Button
+                    key={filter}
+                    variant={selectedStatusFilter === filter ? "default" : "ghost"}
+                    onClick={() => setSelectedStatusFilter(filter)}
+                    className={selectedStatusFilter === filter ? "b  text-xs h-7 text-white bg-[#815bf5] hover:bg-[#815bf5]" : "text-gray-400 h-7 border text-xs border-gray-700 hover:text-gray-400 hover:bg-transparent"}
+                  >
+                    {filter}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">Reversed</span>
+                <Switch />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">Reversed</span>
-              <Switch />
+
+
+
+
+            <div className="flex items-center justify-end gap-2 mb-4">
+              <Switch className="invert-[100] scale-75" checked={useMockData} onCheckedChange={() => setUseMockData(!useMockData)} />
             </div>
-          </div>
-          <div className="flex items-center justify-end gap-2 mb-4">
-            <Switch className="invert-[100] scale-75" checked={useMockData} onCheckedChange={() => setUseMockData(!useMockData)} />
           </div>
           {/* Table */}
           <OrganizationTable statusFilter={selectedStatusFilter} useMockData={useMockData} />
         </main>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 

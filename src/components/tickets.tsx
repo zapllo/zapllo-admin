@@ -2,216 +2,206 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import dayjs from "dayjs"; // For date formatting
+import dayjs from "dayjs";
 import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import TicketStats from "./cards/ticketStats";
 import DateFilters from "./filters/date-filters";
+import { Switch } from "@/components/ui/switch";
 
-
-// Interface for the User object (based on your user model)
+// Interfaces for data
 interface IUser {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    organization: IOrganization;
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  organization: IOrganization;
 }
 
-// Interface for the Organization object
 interface IOrganization {
-    _id: string;
-    companyName: string;
+  _id: string;
+  companyName: string;
 }
 
-// Interface for the Ticket object (based on your ticket model)
 interface ITicket {
-    _id: string;
-    category: string;
-    subcategory: string;
-    user: IUser; // Referencing the User interface
-    subject: string;
-    description: string;
-    fileUrl?: string[];
-    createdAt: Date;
-    updatedAt: Date;
-    comments: IComment[];
-    status: string;
+  _id: string;
+  category: string;
+  subcategory: string;
+  user: IUser;
+  subject: string;
+  description: string;
+  fileUrl?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  comments: IComment[];
+  status: string;
 }
 
-// Interface for the Comment object (based on your ticket model)
 interface IComment {
-    userId: string;
-    content: string;
-    fileUrls?: string[] | null;
-    createdAt: Date;
+  userId: string;
+  content: string;
+  fileUrls?: string[] | null;
+  createdAt: Date;
 }
-
 
 type AdminSidebarProps = {
-    isCollapsed: boolean;
-    setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  isCollapsed: boolean;
+  setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-
 const TicketsTable = ({ isCollapsed, setIsCollapsed }: AdminSidebarProps) => {
-    const [tickets, setTickets] = useState<ITicket[]>([]);
-    const [filteredTickets, setFilteredTickets] = useState<ITicket[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [stats, setStats] = useState({
-        totalTickets: 0,
-        resolvedTickets: 0,
-        pendingTickets: 0,
-        inResolutionTickets: 0,
-    });
-    const [selectedDateFilter, setSelectedDateFilter] = useState("All Time")
-    const router = useRouter();
+  const [tickets, setTickets] = useState<ITicket[]>([]);
+  const [filteredTickets, setFilteredTickets] = useState<ITicket[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>(""); // For search input
+  const [showSpecificStatuses, setShowSpecificStatuses] = useState<boolean>(false); // For status filtering switch
+  const [selectedDateFilter, setSelectedDateFilter] = useState("All Time");
+  const router = useRouter();
 
+    // Fetch tickets only after the client has mounted
     useEffect(() => {
-        const fetchTickets = async () => {
+        if (typeof window !== "undefined") {
+          const fetchTickets = async () => {
             try {
-                const response = await axios.get("/api/tickets/all");
-                console.log(response, 'tickets?')
-                setTickets(response.data.tickets);
-                setFilteredTickets(response.data.tickets);
-                setStats(response.data.stats);
-                setLoading(false);
+              const response = await axios.get("/api/tickets/all");
+              setTickets(response.data.tickets);
+              setFilteredTickets(response.data.tickets);
+              setLoading(false);
             } catch (err) {
-                setError("Failed to load tickets");
-                setLoading(false);
+              console.error("Failed to load tickets:", err);
+              setLoading(false);
             }
-        };
-        fetchTickets();
-    }, []);
-
-
-    const getDateRange = (filter: string) => {
-        const today = new Date();
-        let startDate, endDate;
-
-        switch (filter) {
-            case "Today":
-                startDate = new Date(today.setHours(0, 0, 0, 0));
-                endDate = new Date(today.setHours(23, 59, 59, 999));
-                break;
-            case "Yesterday":
-                startDate = new Date(today.setDate(today.getDate() - 1));
-                endDate = new Date(today.setHours(23, 59, 59, 999));
-                break;
-            case "This Week":
-                startDate = new Date(today.setDate(today.getDate() - today.getDay()));
-                endDate = today;
-                break;
-            case "Last Week":
-                startDate = new Date(today.setDate(today.getDate() - today.getDay() - 7));
-                endDate = new Date(today.setDate(today.getDate() + 6));
-                break;
-            case "This Month":
-                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                break;
-            case "Last Month":
-                startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                endDate = new Date(today.getFullYear(), today.getMonth(), 0);
-                break;
-            case "This Year":
-                startDate = new Date(today.getFullYear(), 0, 1);
-                endDate = new Date(today.getFullYear(), 11, 31);
-                break;
-            default:
-                return null;
+          };
+          fetchTickets();
         }
-        return { startDate, endDate };
+      }, []);
+    
+  useEffect(() => {
+    const filterTickets = () => {
+      let filtered = tickets;
+
+      // Filter by search query
+      if (searchQuery.trim()) {
+        filtered = filtered.filter((ticket) =>
+          ticket.user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+
+      // Filter by specific statuses
+      if (showSpecificStatuses) {
+        filtered = filtered.filter(
+          (ticket) => ticket.status === "Pending" || ticket.status === "In Resolution"
+        );
+      }
+
+      setFilteredTickets(filtered);
     };
 
-    useEffect(() => {
-        const dateRange = getDateRange(selectedDateFilter);
-        if (!dateRange) {
-            setFilteredTickets(tickets);
-            return;
-        }
+    filterTickets();
+  }, [searchQuery, showSpecificStatuses, tickets]);
 
-        const { startDate, endDate } = dateRange;
-        const isInDateRange = (date: Date) => new Date(date) >= startDate && new Date(date) <= endDate;
+  const handleViewDetails = (ticket: ITicket) => {
+    router.push(`/tickets/${ticket._id}`);
+  };
 
-        const filtered = tickets.filter(ticket => isInDateRange(ticket.createdAt));
-        setFilteredTickets(filtered);
+  return (
+    <div className="flex min-h-screen mt-12 bg-[#04061e] ">
+      <div
+        className={cn(
+          "flex-1 transition-all duration-300",
+          isCollapsed ? "ml-0" : "ml-64"
+        )}
+      >
+        <main className="p-6">
+          <TicketStats
+            statsData={{
+              totalTickets: tickets.length,
+              resolvedTickets: tickets.filter((ticket) => ticket.status === "Resolved").length,
+              pendingTickets: tickets.filter((ticket) => ticket.status === "Pending").length,
+              inResolutionTickets: tickets.filter((ticket) => ticket.status === "In Resolution").length,
+            }}
+          />
+          <DateFilters onDateFilterChange={setSelectedDateFilter} />
 
-        // Update stats based on filtered tickets
-        setStats({
-            totalTickets: filtered.length,
-            resolvedTickets: filtered.filter(ticket => ticket.status === "Resolved").length,
-            pendingTickets: filtered.filter(ticket => ticket.status === "Pending").length,
-            inResolutionTickets: filtered.filter(ticket => ticket.status === "In Resolution").length,
-        });
-    }, [tickets, selectedDateFilter]);
+          <div className="flex items-center justify-between mt-4 mb-4">
+            {/* Search Input */}
+            <input
+              type="text"
+              placeholder="Search by email"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="border border-gray-700 bg-[#0B0D29] text-white rounded px-4 py-2 w-1/3 focus:outline-none"
+            />
 
-    const handleViewDetails = (ticket: ITicket) => {
-        router.push(`/tickets/${ticket._id}`);
-    };
-
-    return (
-        <div className="flex min-h-screen mt-12 bg-[#04061e] ">
-            {/* <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} /> */}
-
-            {/* Main Content */}
-            <div
-                className={cn(
-                    "flex-1 transition-all  duration-300",
-                    isCollapsed ? "ml-0" : "ml-64"
-                )}
-            >
-                {/* <Infobar />a */}
-                {/* Main Content */}
-                <main className="p-6  ">
-                    <TicketStats statsData={stats} />
-                    <DateFilters onDateFilterChange={setSelectedDateFilter} />
-
-                    <div className="overflow-x-auto rounded-xl mt-4 border border-gray-700">
-                        <table className="min-w-full   text-white">
-                            <thead className="">
-                                <tr className="text-left  text-sm border rounded-xl  border-gray-700">
-                                    <th className="py-2 px-4">S.No</th>
-                                    <th className="py-2 px-4">User Name</th>
-                                    <th className="py-2 px-4">Organization Name</th>
-                                    <th className="py-2 px-4">Category</th>
-                                    <th className="py-2 px-4">Subcategory</th>
-                                    <th className="py-2 px-4">Date</th>
-                                    <th className="py-2 px-4">Due Date</th>
-                                    <th className="py-2 px-4">Status</th>
-                                    <th className="py-2 px-4">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredTickets?.map((ticket, index) => (
-                                    <tr key={ticket._id} className="border text-sm border-gray-700">
-                                        <td className="py-2 px-4">{index + 1}</td>
-                                        <td className="py-2 px-4">
-                                            {ticket?.user?.firstName} {ticket?.user?.lastName}
-                                        </td>
-                                        <td className="py-2 px-4">{ticket?.user?.organization?.companyName}</td>
-                                        <td className="py-2 px-4">{ticket?.category}</td>
-                                        <td className="py-2 px-4">{ticket?.subcategory}</td>
-                                        <td className="py-2 px-4">{dayjs(ticket?.createdAt).format('MMM DD, YYYY')}</td>
-                                        <td className="py-2 px-4">{dayjs(ticket?.createdAt).add(1, 'day').format('MMM DD, YYYY')}</td>
-                                        <td className={`py-2 px-4 ${ticket?.status === "Over Due" ? "text-red-500" : "text-green-500"}`}>
-                                            {ticket.status}
-                                        </td>
-                                        <td className="py-2 px-4 text-center">
-                                            <button onClick={() => handleViewDetails(ticket)} className="text-blue-500 hover:underline">
-                                                <Eye />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </main>
+            {/* Status Filter Switch */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="status-switch" className="text-gray-400">
+                Show Pending/In Resolution
+              </label>
+              <Switch
+                id="status-switch"
+                checked={showSpecificStatuses}
+                onCheckedChange={setShowSpecificStatuses}
+              />
             </div>
-        </div>
-    );
+          </div>
+
+          <div className="overflow-x-auto rounded-xl mt-4 border border-gray-700">
+            <table className="min-w-full text-white">
+              <thead>
+                <tr className="text-left text-sm border rounded-xl border-gray-700">
+                  <th className="py-2 px-4">S.No</th>
+                  <th className="py-2 px-4">User Name</th>
+                  <th className="py-2 px-4">Email</th>
+                  <th className="py-2 px-4">Organization Name</th>
+                  <th className="py-2 px-4">Category</th>
+                  <th className="py-2 px-4">Subcategory</th>
+                  <th className="py-2 px-4">Date</th>
+                  <th className="py-2 px-4">Status</th>
+                  <th className="py-2 px-4">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTickets.map((ticket, index) => (
+                  <tr key={ticket._id} className="border text-sm border-gray-700">
+                    <td className="py-2 px-4">{index + 1}</td>
+                    <td className="py-2 px-4">
+                      {ticket.user.firstName} {ticket.user.lastName}
+                    </td>
+                    <td className="py-2 px-4">{ticket.user.email}</td>
+                    <td className="py-2 px-4">{ticket.user.organization.companyName}</td>
+                    <td className="py-2 px-4">{ticket.category}</td>
+                    <td className="py-2 px-4">{ticket.subcategory}</td>
+                    <td className="py-2 px-4">
+                      {dayjs(ticket.createdAt).format("MMM DD, YYYY")}
+                    </td>
+                    <td
+                      className={`py-2 px-4 ${
+                        ticket.status === "Over Due"
+                          ? "text-red-500"
+                          : "text-green-500"
+                      }`}
+                    >
+                      {ticket.status}
+                    </td>
+                    <td className="py-2 px-4 text-center">
+                      <button
+                        onClick={() => handleViewDetails(ticket)}
+                        className="text-blue-500 hover:underline"
+                      >
+                        <Eye />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 };
 
 export default TicketsTable;

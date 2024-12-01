@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
         const tickets = await Ticket.find({})
             .populate({
                 path: 'user',
-                select: 'firstName lastName organization',
+                select: 'firstName lastName organization email',
                 populate: {
                     path: 'organization',
                     select: 'companyName',
