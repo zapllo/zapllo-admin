@@ -1,8 +1,8 @@
-'use client';
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import CreateTutorialDialog from "./modals/createTutorial";
+import EditTutorialDialog from "./modals/editTutorial";
+import DeleteConfirmationDialog from "./modals/deleteConfirmationDialog"; // Import the DeleteConfirmationDialog component
 import axios from "axios";
 
 const categoryOptions = [
@@ -24,6 +24,9 @@ const Tutorials = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tutorialToDelete, setTutorialToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTutorials = async () => {
       try {
@@ -44,6 +47,35 @@ const Tutorials = ({
     setTutorials((prev) => [...prev, newTutorial]);
   };
 
+  const handleTutorialUpdated = (updatedTutorial: any) => {
+    setTutorials((prev) =>
+      prev.map((tutorial) =>
+        tutorial._id === updatedTutorial._id ? updatedTutorial : tutorial
+      )
+    );
+  };
+
+  const handleDelete = async () => {
+    if (!tutorialToDelete) return;
+
+    try {
+      await axios.delete(`/api/tutorials/${tutorialToDelete}`);
+      setTutorials((prev) =>
+        prev.filter((tutorial) => tutorial._id !== tutorialToDelete)
+      );
+      setDeleteDialogOpen(false);
+      setTutorialToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete tutorial:", err);
+      setError("Failed to delete tutorial.");
+    }
+  };
+
+  const openDeleteDialog = (tutorialId: string) => {
+    setTutorialToDelete(tutorialId);
+    setDeleteDialogOpen(true);
+  };
+
   const filteredTutorials =
     selectedCategory === "All"
       ? tutorials
@@ -60,7 +92,6 @@ const Tutorials = ({
         <main className="p-6">
           <div className="flex items-center justify-between mb-4">
             <CreateTutorialDialog onTutorialCreated={handleTutorialCreated} />
-            {/* Dropdown for category filter */}
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -100,12 +131,35 @@ const Tutorials = ({
                   >
                     View Tutorial
                   </a>
+                  <div className="flex justify-between mt-2">
+                    {/* Edit Tutorial */}
+                    <EditTutorialDialog
+                      tutorial={tutorial}
+                      onTutorialUpdated={handleTutorialUpdated}
+                    />
+                    {/* Delete Tutorial */}
+                    <button
+                      onClick={() => openDeleteDialog(tutorial._id)}
+                      className="text-red-500 underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </main>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Tutorial"
+        description="Are you sure you want to delete this tutorial? This action cannot be undone."
+      />
     </div>
   );
 };

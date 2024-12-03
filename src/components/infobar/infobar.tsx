@@ -211,13 +211,16 @@ const InfoBar = (props: Props) => {
             {/* <ModeToggle /> */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  className="relative rounded-full hover:bg-[] bg-[] border p-2 h-9 w-9"
-                  size="icon"
-                >
-                  <Bell />
-                  <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full border-2 border-red-500 "></span>
-                </Button>
+                <div className="bg-gradient-to-r from-[#815BF5] via-[#FC8929] to-[#FC8929] p-[1px] rounded-full">
+                  <Button
+                    className="relative z-[100] rounded-full bg-[#04061e] text-white hover:bg-[#04061e] border-0 p-2 h-9 w-9"
+                    size="icon"
+                  >
+                    <Bell />
+                    <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full border-2 border-[#04061e]"></span>
+                  </Button>
+                </div>
+
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 -ml-36">
                 <DropdownMenuLabel>
@@ -230,7 +233,7 @@ const InfoBar = (props: Props) => {
               <DropdownMenuTrigger asChild>
 
                 <div className="flex gap-2 ">
-                  <div className="h-9 w-9 text-xs items-center cursor-pointer flex justify-center border bg-[#815BF5] rounded-full">
+                  <div className="h-9 w-9 text-xs text-white border-gray-800 items-center cursor-pointer flex justify-center border bg-gray-500 rounded-full">
                     {profilePic ? (
                       <img src={profilePic} alt="Profile" className="h-full w-full rounded-full object-cover" />
                     ) : (

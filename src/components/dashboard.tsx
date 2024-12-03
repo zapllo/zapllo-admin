@@ -105,9 +105,9 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
   };
 
   // const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [statsData, setStatsData] = React.useState(mockStatsData);
 
-
-  const getDateRange = (filter: any) => {
+  const getDateRange = (filter: string) => {
     const today = new Date();
     let startDate, endDate;
 
@@ -140,10 +140,6 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
         startDate = new Date(today.getFullYear(), 0, 1);
         endDate = new Date(today.getFullYear(), 11, 31);
         break;
-      case "All Time":
-        startDate = new Date(today.getFullYear(), 0, 1);
-        endDate = new Date(today.getFullYear(), 11, 31);
-        break;
       default:
         return true;
     }
@@ -152,44 +148,46 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
 
   React.useEffect(() => {
     if (!useMockData) {
-      axios.get("/api/organizations/tasks").then((response) => {
-        const { data, summary } = response.data;
-        setAllStatsData({
-          organizations: data.map((org: Organization) => ({ createdAt: org.createdAt })),
-          tasks: data.flatMap((org: Organization) => org.tasks),
-          users: data.flatMap((org: Organization) => org.users),
-          summary,
-        });
-      }).catch(error => console.error("Error fetching stats data:", error));
+      axios
+        .get("/api/organizations/tasks")
+        .then((response) => {
+          const { data, summary } = response.data;
+          setAllStatsData({
+            organizations: data.map((org: Organization) => ({ createdAt: org.createdAt })),
+            tasks: data.flatMap((org: Organization) => org.tasks),
+            users: data.flatMap((org: Organization) => org.users),
+            summary,
+          });
+
+          setStatsData({
+            totalTasks: summary.totalTasksAcrossOrgs,
+            completedTasks: summary.completedTasksAcrossOrgs,
+            totalOrganizations: summary.totalOrganizations,
+            totalUsers: summary.totalUsersAcrossOrgs,
+          });
+        })
+        .catch((error) => console.error("Error fetching stats data:", error));
     } else {
-      setFilteredStatsData(mockStatsData);
+      setStatsData(mockStatsData);
     }
   }, [useMockData]);
 
   React.useEffect(() => {
-    const dateRange = getDateRange(selectedDateFilter);
+    if (useMockData) return;
 
-    if (!dateRange || typeof dateRange !== 'object') {
-      // Set unfiltered stats data if no specific date range is returned
-      setFilteredStatsData({
-        totalTasks: allStatsData.summary.totalTasksAcrossOrgs,
-        completedTasks: allStatsData.summary.completedTasksAcrossOrgs,
-        totalOrganizations: allStatsData.summary.totalOrganizations,
-        totalUsers: allStatsData.summary.totalUsersAcrossOrgs,
-      });
-      return;
-    }
+    const dateRange = getDateRange(selectedDateFilter);
+    if (!dateRange || typeof dateRange !== "object") return;
 
     const { startDate, endDate } = dateRange;
     const isInDateRange = (createdAt: Date) => new Date(createdAt) >= startDate && new Date(createdAt) <= endDate;
 
-    setFilteredStatsData({
+    setStatsData({
       totalTasks: allStatsData.tasks.filter((task: Task) => isInDateRange(task.createdAt)).length,
       completedTasks: allStatsData.tasks.filter((task: Task) => task.status === "Completed" && isInDateRange(task.createdAt)).length,
       totalOrganizations: allStatsData.organizations.filter((org: Organization) => isInDateRange(org.createdAt)).length,
       totalUsers: allStatsData.users.filter((user: User) => isInDateRange(user.createdAt)).length,
     });
-  }, [allStatsData, selectedDateFilter]);
+  }, [allStatsData, selectedDateFilter, useMockData]);
 
   return (
     <div className="flex min-h-screen mt-12 bg-[#04061e] ">
@@ -206,7 +204,7 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
         {/* Main Content */}
         <main className="p-6  ">
           {/* Stats */}
-          <Stats statsData={mockStatsData} />
+          <Stats statsData={statsData} />
 
 
 

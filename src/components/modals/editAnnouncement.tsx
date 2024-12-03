@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Dialog,
@@ -13,19 +13,35 @@ import {
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 
-export default function CreateAnnouncement({
-  onAnnouncementCreated,
+export default function EditAnnouncementDialog({
+  announcement,
+  onAnnouncementUpdated,
+  isOpen,
+  onClose,
 }: {
-  onAnnouncementCreated: (announcement: any) => void;
+  announcement: any;
+  onAnnouncementUpdated: (announcement: any) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [announcementName, setAnnouncementName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [buttonName, setButtonName] = useState("");
-  const [buttonLink, setButtonLink] = useState("");
+  const [announcementName, setAnnouncementName] = useState(announcement.announcementName);
+  const [startDate, setStartDate] = useState(announcement.startDate);
+  const [endDate, setEndDate] = useState(announcement.endDate);
+  const [buttonName, setButtonName] = useState(announcement.buttonName);
+  const [buttonLink, setButtonLink] = useState(announcement.buttonLink);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset form values when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setAnnouncementName(announcement.announcementName);
+      setStartDate(announcement.startDate);
+      setEndDate(announcement.endDate);
+      setButtonName(announcement.buttonName);
+      setButtonLink(announcement.buttonLink);
+    }
+  }, [isOpen, announcement]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +49,7 @@ export default function CreateAnnouncement({
     setLoading(true);
 
     try {
-      const response = await axios.post("/api/announcements", {
+      const response = await axios.patch(`/api/announcements/${announcement._id}`, {
         announcementName,
         startDate,
         endDate,
@@ -41,13 +57,8 @@ export default function CreateAnnouncement({
         buttonLink,
       });
 
-      onAnnouncementCreated(response.data.announcements);
-      setAnnouncementName("");
-      setStartDate("");
-      setEndDate("");
-      setButtonName("");
-      setButtonLink("");
-      setDialogOpen(false); // Close dialog after successful creation
+      onAnnouncementUpdated(response.data.announcement);
+      onClose(); // Close dialog after successful update
     } catch (err: any) {
       setError(err.response?.data?.message || "Something went wrong.");
     } finally {
@@ -56,17 +67,14 @@ export default function CreateAnnouncement({
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger className="bg-[#017a5b] text-sm text-white px-4 py-2 rounded">
-        Create Announcement
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="p-6">
         <div className="flex justify-between">
           <DialogHeader>
-            <DialogTitle className="text-white">Create Announcement</DialogTitle>
+            <DialogTitle className="text-white">Edit Announcement</DialogTitle>
           </DialogHeader>
           <DialogClose>
-            <X className="text-white" />
+            <X className="text-white cursor-pointer" onClick={onClose} />
           </DialogClose>
         </div>
 
@@ -117,14 +125,14 @@ export default function CreateAnnouncement({
           <DialogFooter>
             <button
               type="submit"
-              className="bg-[#017a5b] text-sm w-full text-white px-4 py-2 rounded"
+              className="bg-[#017a5b] w-full text-white px-4 py-2 rounded"
               disabled={loading}
             >
-              {loading ? "Creating..." : "Create"}
+              {loading ? "Updating..." : "Update"}
             </button>
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog >
+    </Dialog>
   );
 }

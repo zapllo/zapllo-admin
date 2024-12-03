@@ -13,22 +13,18 @@ import {
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 
-const categoryOptions = [
-  "Task Delegation App",
-  "Leave and Attendance App",
-  "Zapllo WABA",
-];
-
-export default function CreateTutorialDialog({
-  onTutorialCreated,
+export default function EditTutorialDialog({
+  tutorial,
+  onTutorialUpdated,
 }: {
-  onTutorialCreated: (tutorial: any) => void;
+  tutorial: any;
+  onTutorialUpdated: (tutorial: any) => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(tutorial.title);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
-  const [link, setLink] = useState("");
-  const [category, setCategory] = useState("");
+  const [link, setLink] = useState(tutorial.link);
+  const [category, setCategory] = useState(tutorial.category);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +44,7 @@ export default function CreateTutorialDialog({
           "Content-Type": "multipart/form-data",
         },
       });
-      return response.data.fileUrls[0]; // Return the uploaded file URL
+      return response.data.fileUrls[0];
     } catch (err) {
       throw new Error("File upload failed");
     }
@@ -60,28 +56,23 @@ export default function CreateTutorialDialog({
     setLoading(true);
 
     try {
-      // Upload thumbnail
-      let thumbnailUrl = "";
+      let thumbnailUrl = tutorial.thumbnail;
       if (thumbnail) {
         thumbnailUrl = await uploadFile(thumbnail);
       }
 
-      // Create the tutorial
-      const response = await axios.post("/api/tutorials", {
+      const updatedTutorial = {
+        ...tutorial,
         title,
         thumbnail: thumbnailUrl,
         link,
         category,
-      });
+      };
 
-      onTutorialCreated(response.data.tutorial);
+      const response = await axios.patch(`/api/tutorials/${tutorial._id}`, updatedTutorial);
+      onTutorialUpdated(response.data.tutorial);
 
-      // Reset form and close dialog
-      setTitle("");
-      setThumbnail(null);
-      setLink("");
-      setCategory("");
-      setDialogOpen(false);
+      setDialogOpen(false); // Close dialog
     } catch (err: any) {
       setError(err.response?.data?.message || "Something went wrong.");
     } finally {
@@ -92,14 +83,12 @@ export default function CreateTutorialDialog({
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger>
-        <button className="bg-[#017a5b] text-sm text-white px-4 py-2 rounded">
-          Create Tutorial
-        </button>
+        <button className="text-blue-500 underline">Edit</button>
       </DialogTrigger>
       <DialogContent className="p-6">
         <div className="flex justify-between w-full">
           <DialogHeader>
-            <DialogTitle className="text-white ml-4">Create a New Tutorial</DialogTitle>
+            <DialogTitle className="text-white ml-4">Edit Tutorial</DialogTitle>
           </DialogHeader>
           <DialogClose>
             <X className="text-white cursor-pointer" />
@@ -120,7 +109,6 @@ export default function CreateTutorialDialog({
               accept="image/*"
               onChange={handleFileChange}
               className="w-full px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
-              required
             />
             <input
               type="url"
@@ -137,11 +125,13 @@ export default function CreateTutorialDialog({
               required
             >
               <option value="">Select Category</option>
-              {categoryOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
+              {["Task Delegation App", "Leave and Attendance App", "Zapllo WABA"].map(
+                (option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                )
+              )}
             </select>
             {error && <p className="text-red-500">{error}</p>}
           </div>
@@ -151,7 +141,7 @@ export default function CreateTutorialDialog({
               className="bg-[#017a5b] w-full text-sm text-white px-4 py-2 rounded"
               disabled={loading}
             >
-              {loading ? "Creating..." : "Create"}
+              {loading ? "Updating..." : "Update"}
             </button>
           </DialogFooter>
         </form>

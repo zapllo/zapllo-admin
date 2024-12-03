@@ -24,9 +24,9 @@ export async function GET() {
     try {
         await connectDB();
         // Fetch only the announcements with isActive set to true
-        const attachments = await Announcement.find({ isActive: true }).lean();
+        const announcements = await Announcement.find({});
 
-        return NextResponse.json({ success: true, attachments });
+        return NextResponse.json({ success: true, announcements });
     } catch (error) {
         console.error("Failed to fetch attachments:", error);
         return NextResponse.json(

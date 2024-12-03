@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         // Set the token as an HTTP-only cookie
         response.cookies.set("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: false,
             sameSite: "strict",
             maxAge: 24 * 60 * 60, // 1 day
             path: "/",
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         const loginTime = new Date().getTime();
         response.cookies.set("loginTime", loginTime.toString(), {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: false,
             sameSite: "strict",
             maxAge: 24 * 60 * 60, // 1 day
             path: "/",
