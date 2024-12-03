@@ -1,11 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
-import Ticket from '@/models/ticketModel'
-import User from '@/models/userModel'
-import connectDB from '@/lib/db'
-import { getDataFromToken } from '@/helper/getDataFromToken'
+import { NextRequest, NextResponse } from 'next/server';
+import Ticket from '@/models/ticketModel';
+import User from '@/models/userModel';
+import connectDB from '@/lib/db';
+import { getDataFromToken } from '@/helper/getDataFromToken';
 
 // Helper function to send WhatsApp notification
-const sendWhatsAppNotification = async (user: any, ticketId: string, status: string, comment: string, templateName: string) => {
+const sendWhatsAppNotification = async (
+    user: any,
+    ticketId: string,
+    status: string,
+    comment: string,
+    templateName: string
+) => {
     const payload = {
         phoneNumber: user.whatsappNo,
         country: user.country,
@@ -14,9 +20,9 @@ const sendWhatsAppNotification = async (user: any, ticketId: string, status: str
             user.firstName,
             `#${ticketId}`, // Ticket ID
             status,
-            comment,
+            comment || 'No additional comments',
         ],
-    }
+    };
 
     try {
         const response = await fetch('https://zapllo.com/api/webhook', {
@@ -36,13 +42,12 @@ const sendWhatsAppNotification = async (user: any, ticketId: string, status: str
     } catch (error) {
         console.error('Error sending WhatsApp notification:', error);
     }
-}
+};
 
 // PATCH /api/tickets/[id]/status
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        // Await for `params` destructuring
-        const { id } = params;
+        const { id } = await params; // Await params resolution
 
         await connectDB();
 
@@ -66,6 +71,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const userId = await getDataFromToken(req);
         // Slice the ticketId from _id to 6 characters
         const ticketId = updatedTicket._id.toString().slice(0, 6);
+
         // Add the comment
         if (comment) {
             updatedTicket.comments.push({
@@ -85,9 +91,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             await sendWhatsAppNotification(user, ticketId, status, comment, templateName);
         }
 
-        return NextResponse.json(updatedTicket);
-    } catch (error) {
+        return NextResponse.json(updatedTicket, { status: 200 });
+    } catch (error: any) {
         console.error('Error updating ticket status:', error);
-        return NextResponse.json({ error: 'Failed to update ticket status' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to update ticket status', details: error.message }, { status: 500 });
     }
 }

@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDataFromToken } from '@/helper/getDataFromToken'
 
 // Get comments for a ticket
-export async function GET(req: NextRequest, { params }: { params: any }) {
-    const { id } = params;  // Accessing `id` from `params` directly
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const id =(await params).id;  // Accessing `id` from `params` directly
     try {
         await connectDB();
         const ticket = await Ticket.findById(id).populate({

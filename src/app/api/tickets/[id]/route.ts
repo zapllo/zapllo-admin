@@ -1,12 +1,18 @@
-import connectDB from '@/lib/db'
-import Ticket from '@/models/ticketModel'
-import { NextRequest, NextResponse } from 'next/server'
+import connectDB from '@/lib/db';
+import Ticket, { IComment } from '@/models/ticketModel';
+import { NextRequest, NextResponse } from 'next/server';
+import { getDataFromToken } from '@/helper/getDataFromToken';
 
+// Define RouteContext type with params
+interface RouteContext {
+    params: Promise<{ id: string }>;
+}
 
-// Get ticket by ID
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+// Get comments for a ticket
+export async function GET(req: NextRequest, { params }: RouteContext) {
+    const { id } = await params; // Await params resolution
+
     try {
-        const { id } = context.params; // Access params correctly
         await connectDB();
 
         const ticket = await Ticket.findById(id).populate({
@@ -18,29 +24,53 @@ export async function GET(request: NextRequest, context: { params: { id: string 
             return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
         }
 
-        return NextResponse.json(ticket);
-    } catch (error) {
-        console.error('Error fetching ticket:', error);
-        return NextResponse.json({ error: 'Failed to fetch ticket' }, { status: 500 });
+        return NextResponse.json(ticket.comments || [], { status: 200 });
+    } catch (error: any) {
+        console.error('Error fetching comments:', error);
+        return NextResponse.json({ error: 'Failed to fetch comments', details: error.message }, { status: 500 });
     }
 }
 
-// Delete ticket by ID
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+// Post a new comment to a ticket
+export async function POST(req: NextRequest, { params }: RouteContext) {
+    const { id } = await params; // Await params resolution
+
     try {
-        const { id } = context.params; // Access params correctly
         await connectDB();
 
-        const ticket = await Ticket.findByIdAndDelete(id);
+        const { comment, fileUrls } = await req.json();
 
+        // Validate comment
+        if (!comment || typeof comment !== 'string' || comment.trim().length === 0) {
+            return NextResponse.json({ error: 'Invalid or empty comment' }, { status: 400 });
+        }
+
+        const userId = await getDataFromToken(req);
+
+        // Validate userId
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized or missing user ID' }, { status: 401 });
+        }
+
+        const ticket = await Ticket.findById(id);
         if (!ticket) {
             return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
         }
 
-        return NextResponse.json({ message: 'Ticket deleted successfully' }, { status: 200 });
-    } catch (error) {
-        console.error('Error deleting ticket:', error);
-        return NextResponse.json({ error: 'Failed to delete ticket' }, { status: 500 });
+        const newComment: IComment = {
+            userId,
+            content: comment,
+            fileUrls: fileUrls || [],
+            createdAt: new Date(),
+        };
+
+        // Add the comment to the ticket
+        ticket.comments.push(newComment);
+        await ticket.save();
+
+        return NextResponse.json(newComment, { status: 201 });
+    } catch (error: any) {
+        console.error('Error adding comment:', error);
+        return NextResponse.json({ error: 'Failed to add comment', details: error.message }, { status: 500 });
     }
 }
-
