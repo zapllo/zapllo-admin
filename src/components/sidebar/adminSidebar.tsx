@@ -59,7 +59,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
         { name: "Tutorials", icon: VideoIcon, link: "/tutorials" },
         { name: "Coupons", icon: TicketCheckIcon, link: "/admin/coupons" },
         { name: "Payments", icon: Wallet2Icon, link: "/admin/payments" },
-        { name: "Checklist", icon: CheckCheckIcon, link: "/admin/checklist" },
+        { name: "Checklist", icon: CheckCheckIcon, link: "/checklist" },
         { name: "Resources", icon: CoinsIcon, link: "/admin/resources" },
         { name: "Reports", icon: ChartLineIcon, link: "/admin/reports" },
         { name: "Referrals", icon: UserSquare2, link: "/admin/referrals" },
