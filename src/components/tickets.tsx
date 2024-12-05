@@ -59,24 +59,22 @@ const TicketsTable = ({ isCollapsed, setIsCollapsed }: AdminSidebarProps) => {
   const [selectedDateFilter, setSelectedDateFilter] = useState("All Time");
   const router = useRouter();
 
-    // Fetch tickets only after the client has mounted
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-          const fetchTickets = async () => {
-            try {
-              const response = await axios.get("/api/tickets/all");
-              setTickets(response.data.tickets);
-              setFilteredTickets(response.data.tickets);
-              setLoading(false);
-            } catch (err) {
-              console.error("Failed to load tickets:", err);
-              setLoading(false);
-            }
-          };
-          fetchTickets();
-        }
-      }, []);
-    
+  // Fetch tickets only after the client has mounted
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const response = await axios.get("/api/tickets/all");
+        setTickets(response.data.tickets);
+        setFilteredTickets(response.data.tickets);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to load tickets:", err);
+        setLoading(false);
+      }
+    };
+    fetchTickets();
+  }, []);
+
   useEffect(() => {
     const filterTickets = () => {
       let filtered = tickets;
@@ -163,25 +161,24 @@ const TicketsTable = ({ isCollapsed, setIsCollapsed }: AdminSidebarProps) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.map((ticket, index) => (
+                {filteredTickets?.map((ticket, index) => (
                   <tr key={ticket._id} className="border text-sm border-gray-700">
                     <td className="py-2 px-4">{index + 1}</td>
                     <td className="py-2 px-4">
-                      {ticket.user.firstName} {ticket.user.lastName}
+                      {ticket?.user?.firstName} {ticket?.user?.lastName}
                     </td>
-                    <td className="py-2 px-4">{ticket.user.email}</td>
-                    <td className="py-2 px-4">{ticket.user.organization.companyName}</td>
-                    <td className="py-2 px-4">{ticket.category}</td>
-                    <td className="py-2 px-4">{ticket.subcategory}</td>
+                    <td className="py-2 px-4">{ticket?.user?.email}</td>
+                    <td className="py-2 px-4">{ticket?.user?.organization.companyName}</td>
+                    <td className="py-2 px-4">{ticket?.category}</td>
+                    <td className="py-2 px-4">{ticket?.subcategory}</td>
                     <td className="py-2 px-4">
                       {dayjs(ticket.createdAt).format("MMM DD, YYYY")}
                     </td>
                     <td
-                      className={`py-2 px-4 ${
-                        ticket.status === "Over Due"
+                      className={`py-2 px-4 ${ticket.status === "Over Due"
                           ? "text-red-500"
                           : "text-green-500"
-                      }`}
+                        }`}
                     >
                       {ticket.status}
                     </td>
