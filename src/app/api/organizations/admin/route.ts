@@ -56,20 +56,25 @@ export async function PATCH(request: NextRequest) {
     try {
         const { organizationId, extensionDays, revoke } = await request.json();
 
+        if (!organizationId || (!extensionDays && !revoke)) {
+            return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+        }
+
         const organization = await Organization.findById(organizationId);
         if (!organization) {
-            return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+            return NextResponse.json({ error: "Organization not found." }, { status: 404 });
         }
 
         if (revoke) {
-            // Set the trialExpires date to now to revoke access
+            // Set trialExpires to now
             organization.trialExpires = new Date();
         } else {
-            // Extend the trial period
-            const newTrialDate = new Date(organization.trialExpires);
-            if (isNaN(newTrialDate.getTime())) {
-                return NextResponse.json({ error: "Invalid trialExpires date" }, { status: 400 });
+            // Validate extensionDays
+            if (extensionDays <= 0) {
+                return NextResponse.json({ error: "Extension days must be a positive number." }, { status: 400 });
             }
+
+            const newTrialDate = new Date(organization.trialExpires || Date.now());
             newTrialDate.setDate(newTrialDate.getDate() + extensionDays);
             organization.trialExpires = newTrialDate;
         }

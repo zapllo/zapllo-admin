@@ -75,6 +75,8 @@ const TicketsTable = ({ isCollapsed, setIsCollapsed }: AdminSidebarProps) => {
     fetchTickets();
   }, []);
 
+  console.log(tickets, 'tickets');
+
   useEffect(() => {
     const filterTickets = () => {
       let filtered = tickets;

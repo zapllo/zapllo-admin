@@ -48,6 +48,7 @@ export default function TicketDetails() {
     }>>([])
     const [loading, setLoading] = useState<boolean>(true); // Add loading state
     const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
+
     useEffect(() => {
         const fetchTicket = async () => {
             try {
@@ -297,12 +298,12 @@ export default function TicketDetails() {
                                                                 <Avatar className='mt-1'>
                                                                     <AvatarImage src="/placeholder-user.jpg" />
                                                                     <AvatarFallback className='bg-[#815BF5] rounded-full p-1 text-white'>
-                                                                        {c.userId.firstName.charAt(0)}{c.userId.lastName.charAt(0)}
+                                                                        {c.userId?.firstName?.charAt(0)}{c.userId?.lastName?.charAt(0)}
                                                                     </AvatarFallback>
                                                                 </Avatar>
                                                                 <div className='flex flex-col'>
-                                                                    <p><strong>{c.userId.firstName}</strong></p>
-                                                                    <p><strong>{c.userId.lastName}</strong></p>
+                                                                    <p><strong>{c?.userId?.firstName}</strong></p>
+                                                                    <p><strong>{c.userId?.lastName}</strong></p>
                                                                 </div>
                                                             </div>
                                                             <div className='px-2 ml-6'>

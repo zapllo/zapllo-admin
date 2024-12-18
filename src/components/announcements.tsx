@@ -7,6 +7,7 @@ import CreateAnnouncement from "./modals/createAnnouncement";
 import EditAnnouncementDialog from "./modals/editAnnouncement"; // Import the edit dialog
 import DeleteConfirmationDialog from "./modals/deleteConfirmationDialog"; // Import the delete confirmation dialog
 import { Switch } from "./ui/switch";
+import { cn } from "@/lib/utils";
 
 const Announcements = ({
   isCollapsed,
@@ -36,8 +37,8 @@ const Announcements = ({
     fetchAnnouncements();
   }, []);
 
-  const activeAnnouncement = announcements.find((announcement) => announcement.isActive);
-  const inactiveAnnouncements = announcements.filter((announcement) => !announcement.isActive);
+  const activeAnnouncement = announcements.find((announcement) => announcement?.isActive);
+  const inactiveAnnouncements = announcements.filter((announcement) => !announcement?.isActive);
 
   // Handle create announcement
   const handleAnnouncementCreated = (newAnnouncement: any) => {
@@ -113,126 +114,140 @@ const Announcements = ({
 
 
   return (
-    <div className="p-6 mt-12">
-      <CreateAnnouncement onAnnouncementCreated={handleAnnouncementCreated} />
+    <div className="flex min-h-screen mt-12 bg-[#04061e] ">
+      {/* <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} /> */}
+
+      {/* Main Content */}
+      <div
+        className={cn(
+          "flex-1 transition-all  duration-300",
+          isCollapsed ? "ml-0" : "ml-64"
+        )}
+      >
+        {/* <Infobar />a */}
+        {/* Main Content */}
+        <main className="p-6  ">
+          <CreateAnnouncement onAnnouncementCreated={handleAnnouncementCreated} />
 
 
-      {activeAnnouncement && (
-        <div className="mb-6 mt-4  p-4 border bg-gray-700 border-gray-800 text-white rounded">
-          <div className="flex  justify-between">
-            <p>
-              <strong>Start Date:</strong>{" "}
-              {dayjs(activeAnnouncement.startDate).format("MMM DD, YYYY HH:mm A")}
-            </p>
-            <p>
-              <strong>End Date:</strong>{" "}
-              {dayjs(activeAnnouncement.endDate).format("MMM DD, YYYY HH:mm A")}
-            </p>
-          </div>
-          <div className="mt-2 flex justify-between text-white">
-            <p>
-              {activeAnnouncement.announcementName}
-            </p>
+          {activeAnnouncement && (
+            <div className="mb-6 mt-4  p-4 border bg-gray-700 border-gray-800 text-white rounded">
+              <div className="flex  justify-between">
+                <p>
+                  <strong>Start Date:</strong>{" "}
+                  {dayjs(activeAnnouncement.startDate).format("MMM DD, YYYY HH:mm A")}
+                </p>
+                <p>
+                  <strong>End Date:</strong>{" "}
+                  {dayjs(activeAnnouncement.endDate).format("MMM DD, YYYY HH:mm A")}
+                </p>
+              </div>
+              <div className="mt-2 flex justify-between text-white">
+                <p>
+                  {activeAnnouncement.announcementName}
+                </p>
 
-            <p className="">
-              <a
-                href={activeAnnouncement.buttonLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-purple-700 p-2 text-white rounded "
-              >
-                {activeAnnouncement.buttonName}
-              </a>
-            </p>
-          </div>
-        </div>
-      )}
+                <p className="">
+                  <a
+                    href={activeAnnouncement.buttonLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-purple-700 p-2 text-white rounded "
+                  >
+                    {activeAnnouncement.buttonName}
+                  </a>
+                </p>
+              </div>
+            </div>
+          )}
 
-      <table className="w-full mt-6 text-white">
-        <thead>
-          <tr className="border-b border-gray-700">
-            <th className="py-2 px-4">Announcement Name</th>
-            <th className="py-2 px-4">Start Date</th>
-            <th className="py-2 px-4">End Date</th>
-            <th className="py-2 px-4">Button Name</th>
-            <th className="py-2 px-4">Button Link</th>
-            <th className="py-2 px-4">Active</th>
-            <th className="py-2 px-4">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {announcements.map((announcement) => (
-            <tr key={announcement._id} className="border-b border-gray-700">
-              <td className="py-2 px-4">{announcement.announcementName}</td>
-              <td className="py-2 px-4">
-                {announcement.startDate
-                  ? dayjs(announcement.startDate).format("MMM DD, YYYY HH:mm A")
-                  : "N/A"}
-              </td>
-              <td className="py-2 px-4">
-                {announcement.endDate
-                  ? dayjs(announcement.endDate).format("MMM DD, YYYY HH:mm A")
-                  : "N/A"}
-              </td>
-              <td className="py-2 px-4">{announcement.buttonName}</td>
-              <td className="py-2 px-4">
-                <a
-                  href={announcement.buttonLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 underline"
-                >
-                  {announcement.buttonLink}
-                </a>
-              </td>
-              <td className="py-2 px-4">
-                <Switch
-                  checked={announcement.isActive}
-                  onCheckedChange={() => handleSwitchIsActive(announcement._id, announcement.isActive)}
-                />
-              </td>
+          <table className="w-full mt-6 text-white">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="py-2 px-4">Announcement Name</th>
+                <th className="py-2 px-4">Start Date</th>
+                <th className="py-2 px-4">End Date</th>
+                <th className="py-2 px-4">Button Name</th>
+                <th className="py-2 px-4">Button Link</th>
+                <th className="py-2 px-4">Active</th>
+                <th className="py-2 px-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {announcements?.map((announcement) => (
+                <tr key={announcement._id} className="border-b border-gray-700">
+                  <td className="py-2 px-4">{announcement.announcementName}</td>
+                  <td className="py-2 px-4">
+                    {announcement.startDate
+                      ? dayjs(announcement.startDate).format("MMM DD, YYYY HH:mm A")
+                      : "N/A"}
+                  </td>
+                  <td className="py-2 px-4">
+                    {announcement.endDate
+                      ? dayjs(announcement.endDate).format("MMM DD, YYYY HH:mm A")
+                      : "N/A"}
+                  </td>
+                  <td className="py-2 px-4">{announcement.buttonName}</td>
+                  <td className="py-2 px-4">
+                    <a
+                      href={announcement.buttonLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 underline"
+                    >
+                      {announcement.buttonLink}
+                    </a>
+                  </td>
+                  <td className="py-2 px-4">
+                    <Switch
+                      checked={announcement?.isActive}
+                      onCheckedChange={() => handleSwitchIsActive(announcement._id, announcement.isActive)}
+                    />
+                  </td>
 
 
-              <td className="py-2 px-4 flex space-x-4">
-                <button
-                  className="text-blue-500 underline"
-                  onClick={() => setAnnouncementToEdit(announcement)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="text-red-500 underline"
-                  onClick={() => {
-                    setAnnouncementToDelete(announcement._id);
-                    setDeleteDialogOpen(true);
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  <td className="py-2 px-4 flex space-x-4">
+                    <button
+                      className="text-blue-500 underline"
+                      onClick={() => setAnnouncementToEdit(announcement)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-red-500 underline"
+                      onClick={() => {
+                        setAnnouncementToDelete(announcement._id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      {/* Edit Announcement Dialog */}
-      {announcementToEdit && (
-        <EditAnnouncementDialog
-          announcement={announcementToEdit}
-          onAnnouncementUpdated={handleAnnouncementUpdated}
-          isOpen={!!announcementToEdit}
-          onClose={() => setAnnouncementToEdit(null)}
-        />
-      )}
+          {/* Edit Announcement Dialog */}
+          {announcementToEdit && (
+            <EditAnnouncementDialog
+              announcement={announcementToEdit}
+              onAnnouncementUpdated={handleAnnouncementUpdated}
+              isOpen={!!announcementToEdit}
+              onClose={() => setAnnouncementToEdit(null)}
+            />
+          )}
 
-      {/* Delete Confirmation Dialog */}
-      <DeleteConfirmationDialog
-        isOpen={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete Announcement"
-        description="Are you sure you want to delete this announcement? This action cannot be undone."
-      />
+          {/* Delete Confirmation Dialog */}
+          <DeleteConfirmationDialog
+            isOpen={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+            onConfirm={handleDelete}
+            title="Delete Announcement"
+            description="Are you sure you want to delete this announcement? This action cannot be undone."
+          />
+        </main>
+      </div>
     </div>
   );
 };

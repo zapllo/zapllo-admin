@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { toast } from "sonner";
 import DateFilters from "../filters/date-filters";
+import { useRouter } from "next/navigation";
+import { Eye, Search } from "lucide-react";
 
 interface Organization {
     _id: string;
@@ -28,10 +30,66 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
     const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]);
     const [statusFilter, setStatusFilter] = useState("All"); // Add filter state
     const [selectedDateFilter, setSelectedDateFilter] = useState("All Time"); // Add selected date filter state
+    const [searchTerm, setSearchTerm] = useState<string>(""); // Search term state
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [extensionDays, setExtensionDays] = useState<number | undefined>();
     const [extendOpen, setExtendOpen] = useState(false);
+    const [revokeOpen, setRevokeOpen] = useState(false);
+    const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+    const [extensionDays, setExtensionDays] = useState<number | undefined>();
+
+    const router = useRouter();
+
+
+    const handleExtendTrial = async () => {
+        if (!selectedOrgId || !extensionDays) {
+            toast.error("Please specify the number of days.");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/organizations/admin', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ organizationId: selectedOrgId, extensionDays }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Failed to extend trial period.");
+            }
+
+            const data = await res.json();
+            toast.success("Trial period extended successfully!");
+
+            // Update the organization data in the UI
+            setOrganizations((prevOrganizations) =>
+                prevOrganizations.map((org) =>
+                    org._id === selectedOrgId ? { ...org, trialExpires: data.data.trialExpires } : org
+                )
+            );
+
+            setExtendOpen(false);
+            setExtensionDays(undefined);
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
+
+    // Dialog open handler
+    const openExtendDialog = (orgId: string) => {
+        setSelectedOrgId(orgId);
+        setExtendOpen(true);
+    };
+
+    // Dialog open handler
+    const openRevokeDialog = (orgId: string) => {
+        setSelectedOrgId(orgId);
+        setRevokeOpen(true);
+    };
+    // Inside your component
 
     useEffect(() => {
         const fetchOrganizations = async () => {
@@ -82,11 +140,20 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                     const trialExpires = new Date(org.trialExpires);
                     return trialExpires >= startDate && trialExpires <= endDate;
                 });
+
             }
         }
-
+        // Filter by search term
+        if (searchTerm) {
+            filteredData = filteredData.filter((org) =>
+                [org.companyName, org.orgAdmin, org.email, org.whatsappNo]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase())
+            );
+        }
         setFilteredOrganizations(filteredData);
-    }, [statusFilter, selectedDateFilter, organizations]);
+    }, [statusFilter, selectedDateFilter, organizations, searchTerm]);
 
     const getDateRange = (filter: string) => {
         const today = new Date();
@@ -146,7 +213,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
             const newTrialPeriod = new Date();
             newTrialPeriod.setMonth(newTrialPeriod.getMonth() + 1); // Extend by 1 month
 
-            const res = await fetch('/api/organization/admin', {
+            const res = await fetch('/api/organizations/admin', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -172,29 +239,35 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
         }
     };
 
-    const revokeTrialPeriod = async (organizationId: any) => {
+    const revokeTrialPeriod = async () => {
+        if (!selectedOrgId) {
+            toast.error("Please try revoking again!");
+            return;
+        }
+
         try {
             const res = await fetch('/api/organizations/admin', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ organizationId, revoke: true }),
+                body: JSON.stringify({ organizationId:selectedOrgId, revoke: true }),
             });
             const data = await res.json();
 
             if (data.error) {
-                alert(data.error);
+                // alert(data.error);
             } else {
-                alert('Trial period revoked successfully');
+                toast.success('Trial period revoked successfully');
                 setOrganizations((prevOrganizations: any) =>
                     prevOrganizations.map((org: any) =>
-                        org._id === organizationId ? { ...org, trialExpires: data.data.trialExpires } : org
+                        org._id === selectedOrgId ? { ...org, trialExpires: data.data.trialExpires } : org
                     )
                 );
+                setRevokeOpen(false);
             }
         } catch (error: any) {
-            alert(error.message);
+            // alert(error.message);
         }
     };
 
@@ -207,8 +280,18 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
         <div className="flex min-h-screen mt-12 bg-[#04061e] text-white">
             <div className={cn("flex-1 transition-all duration-300", isCollapsed ? "ml-0" : "ml-64")}>
                 <main className="p-6">
-                    <h1 className="text-center font-bold text-xl">Organizations</h1>
-
+                    <h1 className="text-start font-bold text-xl">Organizations</h1>
+                    {/* Search Input */}
+                    <div className="flex items-center border border-gray-700 rounded-xl p-2  my-4 space-x-2">
+                        <Search className="text-gray-400 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, admin, email, or WhatsApp number..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="text-sm bg-transparent   border-gray-700 rounded outline-none text-white w-full focus:outline-none  "
+                        />
+                    </div>
                     {/* Status Filter Buttons */}
                     <div className="flex space-x-4 my-4">
                         {["All", "Active", "Trial", "Trial Expired", "Expired"].map((status) => (
@@ -236,6 +319,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                                     <th className=" border-gray-800 px-4 py-2">Email</th>
                                     <th className=" border-gray-800 px-4 py-2">WhatsApp Number</th>
                                     <th className=" border-gray-800 px-4 py-2">Trial Expires</th>
+                                    <th className=" border-gray-800 px-4 py-2">Quick Actions</th>
                                     <th className=" border-gray-800 px-4 py-2">Action</th>
 
                                 </tr>
@@ -250,41 +334,84 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                                         <td className=" border-gray-800 px-4 py-2">{org.whatsappNo}</td>
                                         <td className=" border-gray-800 px-4 py-2">{new Date(org.trialExpires).toLocaleDateString()}</td>
                                         <td className="">
-                                            <div className='space-x-2 p-2 flex'>
+                                            <div className="space-x-2 p-2 flex">
                                                 <Button
-                                                    // onClick={() => extendTrialPeriod(org._id)}
-                                                    onClick={() => setExtendOpen(true)}
-                                                    className='bg-transparent border h-7 text-xs text-[#FC8929] border-[#FC8929]'
+                                                    onClick={() => openExtendDialog(org._id)}
+                                                    className="bg-transparent border h-7 text-xs text-[#FC8929] border-[#FC8929]"
                                                 >
                                                     Extend Days
                                                 </Button>
-                                                <Button onClick={() => revokeTrialPeriod(org._id)} variant="destructive" className="text-xs h-7 border bg-transparent text-[#815BF5] border-[#815BF5]">
+                                                <Button
+                                                    onClick={() => openRevokeDialog(org._id)}
+                                                    variant="destructive"
+                                                    className="text-xs h-7 border bg-transparent text-[#815BF5] border-[#815BF5]"
+                                                >
                                                     Revoke Trial
                                                 </Button>
                                             </div>
-                                            <Dialog open={extendOpen} onOpenChange={() => setExtendOpen(false)}>
-                                                <DialogContent className="p-6">
-                                                    <div className="flex justify-center">
-                                                        <img src="/extend.png" />
+                                        </td>
 
-                                                    </div>
-                                                    <h1 className="text-white text-center">Are you sure you want to extend your days? </h1>
-                                                    <input type="text" className="bg-transparent text-white border outline-none p-2 rounded border-gray-800 " placeholder="Enter the days you want to extend" />
+                                        <Dialog open={extendOpen} onOpenChange={() => setExtendOpen(false)}>
+                                            <DialogContent className="p-6">
+                                                <div className="flex justify-center">
+                                                    <img src="/extend.png" alt="Extend Trial" />
+                                                </div>
+                                                <h1 className="text-white text-center">
+                                                    Extend trial period for {extensionDays} days?
+                                                </h1>
+                                                <input
+                                                    type="number"
+                                                    value={extensionDays}
+                                                    onChange={(e) => setExtensionDays(Number(e.target.value))}
+                                                    className="bg-transparent text-white border outline-none p-2 rounded border-gray-800 w-full"
+                                                    placeholder="Enter the number of days"
+                                                />
+                                                <div className="mt-4 flex justify-center">
+
                                                     <Button
-                                                        onClick={() => extendTrialPeriod(org._id)}
-                                                        className='bg-transparent w-fit justify-center h-7 text-xs bg-[#815bf5] '
+                                                        onClick={handleExtendTrial}
+                                                        className="bg-transparent w-full justify-center h-7 text-xs hover:bg-[#5f31e9] bg-[#815bf5]"
                                                     >
-                                                        Extend Days
+                                                        Confirm
                                                     </Button>
-                                                </DialogContent>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
 
-                                            </Dialog>
+                                        <Dialog open={revokeOpen} onOpenChange={() => setRevokeOpen(false)}>
+                                            <DialogContent className="p-6">
+                                                <div className="flex justify-center">
+                                                    <img src="/revoke.png" alt="Extend Trial" />
+                                                </div>
+                                                <h1 className="text-white text-center">
+                                                    Revoke trial period for the organization?
+                                                </h1>
+
+                                                <div className="mt-4 flex justify-center">
+                                                    <Button
+                                                        onClick={revokeTrialPeriod}
+                                                        className="bg-transparent w-full justify-center h-7 text-xs hover:bg-[#5f31e9] bg-[#815bf5]"
+                                                    >
+                                                      Yes, Revoke
+                                                    </Button>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+
+
+                                        <td>
+                                            <Button
+                                                onClick={() => router.push(`/workspaces/${org._id}`)} // Navigate to the dynamic page
+                                                variant="outline"
+                                                className="text-xs bg-transparent border-none text-[#] hover:bg-transparent hover:text-white h-7 flex items-center space-x-1"
+                                            >
+                                                <Eye />
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-
                     </div>
                 </main>
             </div>

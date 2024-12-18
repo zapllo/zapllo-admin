@@ -52,15 +52,16 @@ export default function AnnouncementsPage({ }: Props) {
     }, []);
     return (
         <div>
-            <div
-                className={`flex  dark:bg-[#04061E] scrollbar-hide h-full w-full`}
-            >
+        <div
+            className={`flex  dark:bg-[#04061E] scrollbar-hide h-full w-full`}
+        >
+            <div className=''>
                 <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-
-                <div className="w-full overflow-y-scroll scrollbar-hide  h-screen">
-                    <InfoBar />
-                    <div className={`${isCollapsed ? "ml-20" : "ml-0"
-                        }`}>
+            </div>
+            <div className="w-full overflow-y-scroll scrollbar-hide  h-screen">
+                <InfoBar />
+                <div className={`${isCollapsed ? "ml-20" : "ml-0"
+                    }`}>
                         <Announcements isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
                     </div>
                 </div>

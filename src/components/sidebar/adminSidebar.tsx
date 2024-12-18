@@ -54,8 +54,9 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
         { name: "Dashboard", icon: Home, link: "/dashboard" },
         { name: "Tickets", icon: Ticket, link: "/tickets" },
         { name: "Workspaces", icon: Users2, link: "/workspaces", hasGradient: true },
-        { name: "Subscriptions", icon: Wallet, link: "/admin/subscriptions" },
+        { name: "Onboarding Logs", icon: UserRoundPlusIcon, link: "/onboardingLogs" },
         { name: "Announcements", icon: Megaphone, link: "/announcements" },
+        { name: "Subscriptions", icon: Wallet, link: "/admin/subscriptions" },
         { name: "Tutorials", icon: VideoIcon, link: "/tutorials" },
         { name: "Coupons", icon: TicketCheckIcon, link: "/admin/coupons" },
         { name: "Payments", icon: Wallet2Icon, link: "/admin/payments" },
@@ -64,7 +65,6 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
         { name: "Reports", icon: ChartLineIcon, link: "/admin/reports" },
         { name: "Referrals", icon: UserSquare2, link: "/admin/referrals" },
         { name: "Leads", icon: UserRoundSearch, link: "/admin/leads" },
-        { name: "Onboarding Logs", icon: UserRoundPlusIcon, link: "/onboardingLogs" },
         { name: "Roles & Permissions", icon: UserPlus2, link: "/admin/roles-permissions" },
         { name: "Task Templates", icon: Grid2X2PlusIcon, link: "/admin/task-templates" },
         { name: "Events", icon: MegaphoneIcon, link: "/admin/events" },
@@ -83,10 +83,10 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
                     <img
                         src="/zapllo.png"
                         alt="Zapllo Logo"
-                        className={cn("transition-all duration-200", isCollapsed ? "h-7 w-auto" : "h-8 w-auto")}
+                        className={cn("transition-all duration-200", isCollapsed ? "h-6 w-auto" : "h-6 w-auto")}
                     />
                     {!isCollapsed && (
-                        <span className="text-xl font-bold text-white">Admin</span>
+                        <span className="text-md mt-1 font-medium  text-white">Admin Dashboard</span>
                     )}
                 </div>
                 <Button
@@ -114,7 +114,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
                                 <a
                                     href={item.link}
                                     className={cn(
-                                        "flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white transition-colors group relative overflow-hidden",
+                                        "flex items-center gap-3 text-sm px-4 py-2 rounded-lg text-gray-400 hover:text-white transition-colors group relative overflow-hidden",
                                         pathname === item.link ? "bg-[#FC8929]  text-white" : "",
                                         isCollapsed && "justify-center"
                                     )}
