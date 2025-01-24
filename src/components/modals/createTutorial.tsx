@@ -123,7 +123,7 @@ export default function CreateTutorialDialog({
               required
             />
             <input
-              type="url"
+              type="string"
               placeholder="Link"
               value={link}
               onChange={(e) => setLink(e.target.value)}

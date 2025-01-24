@@ -1,7 +1,6 @@
 import connectDB from "@/lib/db";
 import User from "@/models/userModel";
 import { NextRequest, NextResponse } from "next/server";
-import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 connectDB();
@@ -24,9 +23,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Access restricted to Admins only" }, { status: 403 });
         }
 
-        // Check if password is correct
-        const validPassword = await bcryptjs.compare(password, user.password);
-        if (!validPassword) {
+
+        if (password !== user.password) {
             return NextResponse.json({ error: "Invalid password" }, { status: 400 });
         }
 
