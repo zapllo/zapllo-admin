@@ -46,13 +46,12 @@ export async function PATCH(req: Request,
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+export async function DELETE(req: Request,
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const userId = (await params).userId
   try {
     await connectDB();
-    const { userId } = params;
 
     // Find and delete the user
     const deletedUser = await User.findByIdAndDelete(userId);
