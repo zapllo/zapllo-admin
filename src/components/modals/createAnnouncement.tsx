@@ -60,14 +60,12 @@ export default function CreateAnnouncement({
       <DialogTrigger className="bg-[#017a5b] text-sm text-white px-4 py-2 rounded">
         Create Announcement
       </DialogTrigger>
-      <DialogContent className="p-6">
+      <DialogContent className="p-6 z-[100]">
         <div className="flex justify-between">
           <DialogHeader>
-            <DialogTitle className="text-white">Create Announcement</DialogTitle>
+            <DialogTitle className="">Create Announcement</DialogTitle>
           </DialogHeader>
-          <DialogClose>
-            <X className="text-white" />
-          </DialogClose>
+         
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -77,7 +75,7 @@ export default function CreateAnnouncement({
               placeholder="Announcement Name"
               value={announcementName}
               onChange={(e) => setAnnouncementName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
+              className="w-full px-4 py-2 border 0 rounded bg-transparent outline-none text-"
               required
             />
             <div className="flex space-x-4">
@@ -85,14 +83,14 @@ export default function CreateAnnouncement({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-1/2 px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
+                className="w-1/2 px-4 py-2 border  rounded bg-transparent outline-none text-"
                 required
               />
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-1/2 px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
+                className="w-1/2 px-4 py-2 border b0 rounded bg-transparent outline-none tex"
                 required
               />
             </div>
@@ -101,7 +99,7 @@ export default function CreateAnnouncement({
               placeholder="Button Name"
               value={buttonName}
               onChange={(e) => setButtonName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
+              className="w-full px-4 py-2 border borde rounded bg-transparent outline-none text-"
               required
             />
             <input
@@ -109,7 +107,7 @@ export default function CreateAnnouncement({
               placeholder="Button Link"
               value={buttonLink}
               onChange={(e) => setButtonLink(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
+              className="w-full px-4 py-2 border -700 rounded bg-transparent outline-none text-"
               required
             />
             {error && <p className="text-red-500">{error}</p>}

@@ -57,7 +57,7 @@ export default function AdminDashboard({ }: Props) {
 
                 <div className="w-full overflow-y-scroll scrollbar-hide  h-screen">
                     <InfoBar />
-                    <div className={`${isCollapsed ? "ml-20" : "ml-0"
+                    <div className={`${isCollapsed ? "ml-16" : "ml-0"
                         }`}>
                         <Dashboard setIsCollapsed={setIsCollapsed} isCollapsed={isCollapsed} />
                     </div>

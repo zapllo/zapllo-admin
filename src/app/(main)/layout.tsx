@@ -64,21 +64,23 @@ const Layout = ({ children }: Props) => {
     }, []);
 
 
-    return (
-        <div>
-            <div
-                className={`flex overflow-hidden dark:bg-[#04061E] scrollbar-hide h-full w-full`}
-            >
-                <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+   // ... existing code ...
 
-                <div className="w-full overflow-hidden h-screen">
-                    <InfoBar />
-                    <div className={`${isCollapsed ? "ml-0" : "ml-0"
-                        }`}>{children}</div>
+return (
+    <div className="h-screen flex flex-col overflow-hidden">
+        <div className="flex flex-1 overflow-hidden dark:bg-[#04061E]">
+            <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+            <div className="flex-1 overflow-hidden flex flex-col">
+                <InfoBar />
+                <div className="flex-1 overflow-auto">
+                    {children}
                 </div>
             </div>
         </div>
-    );
-};
+    </div>
+);
+}
+
+// ... existing code ...
 
 export default Layout;

@@ -4,24 +4,26 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog'
-import { ArrowLeft, CheckCheck } from 'lucide-react'
-// import ChecklistSidebar from '@/components/sidebar/checklistSidebar'
+import { ArrowLeft, CheckCheck, Paperclip, MessageCircle, Clock, Tag, User } from 'lucide-react'
 import Link from 'next/link'
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar'
-// import { IconChecklist } from '@tabler/icons-react'
-import { X } from 'lucide-react' // Import X icon for removing files
+import { X } from 'lucide-react'
 import Loader from '@/components/ui/loader'
 import AdminSidebar from '@/components/sidebar/adminSidebar'
 import InfoBar from '@/components/infobar/infobar'
 import { useParams } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
+// Type definitions remain the same
 type Ticket = {
     _id: string;
     category: string;
     subcategory: string;
     subject: string;
     description: string;
-    fileUrl?: string[]; // Updated to handle array of URLs
+    fileUrl?: string[];
     status: string;
     user: { name: string };
     createdAt: string;
@@ -29,30 +31,32 @@ type Ticket = {
         userId: { firstName: string; lastName: string };
         content: string;
         createdAt: string;
-        fileUrls?: string[]; // Array of file URLs for comments
+        fileUrls?: string[];
     }>;
 };
 
 export default function TicketDetails() {
+    // State variables remain the same
     const [ticket, setTicket] = useState<Ticket | null>(null)
-    const { id } = useParams(); // Accessing dynamic `id` from the URL
+    const { id } = useParams();
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
     const [comment, setComment] = useState<string>('')
-    const [statusToUpdate, setStatusToUpdate] = useState<string>('') // Store the status to update
-    const [files, setFiles] = useState<File[]>([]) // Updated to handle array of files
+    const [statusToUpdate, setStatusToUpdate] = useState<string>('')
+    const [files, setFiles] = useState<File[]>([])
     const [comments, setComments] = useState<Array<{
         userId: { firstName: string; lastName: string };
         content: string;
         createdAt: string;
-        fileUrls?: string[]; // Array of file URLs for comments
+        fileUrls?: string[];
     }>>([])
-    const [loading, setLoading] = useState<boolean>(true); // Add loading state
+    const [loading, setLoading] = useState<boolean>(true);
     const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
 
+    // Existing useEffect and handler functions remain the same
     useEffect(() => {
         const fetchTicket = async () => {
             try {
-                setLoading(true); // Set loading to true before fetching
+                setLoading(true);
                 const response = await axios.get(`/api/tickets/${id}`)
                 const sortedComments = response.data.comments.sort(
                     (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -62,11 +66,13 @@ export default function TicketDetails() {
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching ticket details:', error)
+                setLoading(false);
             }
         }
         fetchTicket()
     }, [id])
 
+    // All other handler functions remain unchanged
     const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setComment(e.target.value)
     }
@@ -93,8 +99,7 @@ export default function TicketDetails() {
                     fileUrls.push(...uploadResponse.data.fileUrls)
                 }
 
-                const response = await axios.post(`/api/tickets/${id}/comments`, { comment, fileUrls })
-                console.log('Comment response:', response.data) // Add this line
+                await axios.post(`/api/tickets/${id}/comments`, { comment, fileUrls })
 
                 setComment('')
                 setFiles([])
@@ -108,9 +113,10 @@ export default function TicketDetails() {
             }
         }
     }
+
     const handleStatusButtonClick = (status: string) => {
-        setStatusToUpdate(status) // Set the status to update
-        setIsDialogOpen(true) // Open the modal
+        setStatusToUpdate(status)
+        setIsDialogOpen(true)
     }
 
     const handleStatusUpdate = async () => {
@@ -124,18 +130,16 @@ export default function TicketDetails() {
                     fileUrls.push(...uploadResponse.data.fileUrls)
                 }
 
-                // Post the comment with the status update
                 await axios.patch(`/api/tickets/${id}/status`, {
                     status: statusToUpdate,
                     comment,
                     fileUrls
                 })
 
-                setIsDialogOpen(false) // Close the modal
-                setComment('') // Reset comment field
-                setFiles([]) // Reset files
+                setIsDialogOpen(false)
+                setComment('')
+                setFiles([])
 
-                // Fetch the updated ticket
                 const updatedTicketResponse = await axios.get(`/api/tickets/${id}`)
                 setTicket(updatedTicketResponse.data)
                 const sortedComments = updatedTicketResponse.data.comments.sort(
@@ -148,249 +152,396 @@ export default function TicketDetails() {
         }
     }
 
+    // Function to get status color
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Pending': return 'bg-amber-500 text-white';
+            case 'In Resolution': return 'bg-blue-500 text-white';
+            case 'Closed': return 'bg-green-500 text-white';
+            case 'Cancelled': return 'bg-red-500 text-white';
+            default: return 'bg-gray-500 text-white';
+        }
+    }
+
+    // Format date for better readability
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
     return (
-        <div>
-            <div
-                className={`flex  dark:bg-[#04061E] scrollbar-hide h-full w-full`}
-            >
-                {/* <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} /> */}
-                <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className="flex dark:bg-[#04061E] bg-gray-50 min-h-screen">
+            <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
-                <div className="w-full overflow-y-scroll scrollbar-hide  h-screen">
-                    <div className='-ml-6'>
-                        <InfoBar />
-                    </div>
-                    <div className="flex mt-24  w-full  max-w-9xl">
-                        {loading ? (
+            <div className="w-full overflow-y-auto h-screen">
+                <InfoBar />
+
+                <div className="flex mt-16 w-full">
+                    {loading ? (
+                        <div className="w-full flex justify-center items-center h-[calc(100vh-4rem)]">
                             <Loader />
-                        ) : (
-                            <div className={`${isCollapsed ? "ml-20" : "ml-64"
-                                } p-6 bg-[#04061E] text-white  overflow-y-scroll h-screen w-screen scrollbar-hide   -mt-12 space-y-4`}>
-                                <Link href='/tickets'>
-                                    <div className='flex gap-2 mb-8 bord font-medium text-xl cursor-pointer'>
-                                        <ArrowLeft className='h-7 rounded-full  border w-7 hover:bg-[#815BF5]' />
-                                        <h1>Back To My Tickets</h1>
-                                    </div>
-                                </Link>
-                                {ticket && (
-                                    <>
+                        </div>
+                    ) : (
+                        <div className={`${isCollapsed ? "ml-20" : "ml-64"} transition-all duration-300
+                            p-6 dark:bg-[#04061E] bg-gray-50 text-gray-900 dark:text-white w-full max-w-7xl mx-auto`}>
 
-                                        <div className='  p-4 border border-gray-700  rounded'>
-                                            <div className="relative max-w-full w-full h-full max-h-32">
-                                                <div
-                                                    className={`flex ' x-[#E0E0E066] px-2 py-1 rounded absolute right-0 ${ticket.status === 'Pending'
-                                                        ? 'bg-red-500'
-                                                        : ticket.status === 'In Resolution'
-                                                            ? 'bg-yellow-500'
-                                                            : ticket.status === 'Closed'
-                                                                ? 'bg-gray-700'
-                                                                : ticket.status === 'Cancelled'
-                                                                    ? 'bg-red-800'
-                                                                    : ''
-                                                        }`}
-                                                >
-                                                    <h1 className='text-white text-xs'>{ticket.status}</h1>
+                            <Link href='/tickets' className="inline-flex items-center gap-2 mb-6 text-blue-600 dark:text-blue-400 hover:underline">
+                                <ArrowLeft className="h-4 w-4" />
+                                <span>Back to tickets</span>
+                            </Link>
+
+                            {ticket && (
+                                <>
+                                    <Card className="mb-8 shadow-sm border dark:border-gray-700 dark:bg-gray-900">
+                                        <CardHeader className="pb-2">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <CardTitle className="text-xl font-bold">{ticket.subject}</CardTitle>
+                                                    <CardDescription className="text-sm">
+                                                        <span className="flex items-center gap-1 mt-1">
+                                                            <Clock className="h-4 w-4" />
+                                                            {formatDate(ticket.createdAt)}
+                                                        </span>
+                                                    </CardDescription>
                                                 </div>
+                                                <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
                                             </div>
-                                            <div>
-                                                <h2 className="text-lg">Status: {ticket.status}</h2>
-                                                <div className="flex space-x-4 my-4">
-                                                    <Button onClick={() => handleStatusButtonClick('In Resolution')} className="bg-blue-500 hover:bg-blue-600 text-white">
-                                                        Mark as In Resolution
-                                                    </Button>
-                                                    <Button onClick={() => handleStatusButtonClick('Closed')} className="bg-green-500 hover:bg-green-600 text-white">
-                                                        Mark as Closed
-                                                    </Button>
-                                                    <Button onClick={() => handleStatusButtonClick('Pending')} className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                                                        Mark as Pending
-                                                    </Button>
-                                                    <Button onClick={() => handleStatusButtonClick('Cancelled')} className="bg-red-500 hover:bg-red-600 text-white">
-                                                        Mark as Cancelled
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                            <>
-                                                {/* Modal for updating status and comment */}
-                                                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                                                    <DialogContent className="text-white rounded-lg p-6">
-                                                        <h2 className="text-lg font-bold mb-4">Update Status: {statusToUpdate}</h2>
-                                                        <textarea
-                                                            value={comment}
-                                                            onChange={handleCommentChange}
-                                                            placeholder="Add a comment"
-                                                            rows={4}
-                                                            className="w-full border border-gray-800 p-2 x bg-[#0B0D29] outline-none rounded mb-4"
-                                                        />
-                                                        <input
-                                                            type="file"
-                                                            onChange={handleFileChange}
-                                                            className="my-2"
-                                                        />
-                                                        <div className="flex gap-2 flex-wrap mb-4">
-                                                            {files.map((file, index) => (
-                                                                <div key={index} className="relative w-32 h-32 mb-2">
-                                                                    <img
-                                                                        src={URL.createObjectURL(file)}
-                                                                        alt={`File ${index}`}
-                                                                        className="object-cover w-full h-full rounded-lg"
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleFileRemove(file)}
-                                                                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1"
-                                                                    >
-                                                                        <X className="h-4 w-4" />
-                                                                    </button>
+                                        </CardHeader>
+
+                                        <CardContent className="pt-4">
+                                            <Tabs defaultValue="details">
+                                                <TabsList className="mb-4">
+                                                    <TabsTrigger value="details">Details</TabsTrigger>
+                                                    <TabsTrigger value="attachments">Attachments</TabsTrigger>
+                                                    <TabsTrigger value="actions">Actions</TabsTrigger>
+                                                </TabsList>
+
+                                                <TabsContent value="details">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-start gap-2">
+                                                                <Tag className="h-4 w-4 mt-1 text-gray-500" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Category</p>
+                                                                    <p>{ticket.category}</p>
                                                                 </div>
-                                                            ))}
+                                                            </div>
+
+                                                            <div className="flex items-start gap-2">
+                                                                <Tag className="h-4 w-4 mt-1 text-gray-500" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Subcategory</p>
+                                                                    <p>{ticket.subcategory}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-start gap-2">
+                                                                <User className="h-4 w-4 mt-1 text-gray-500" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Reported By</p>
+                                                                    <p>{ticket.user.name}</p>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex justify-end space-x-4">
-                                                            <Button onClick={handleStatusUpdate} className="bg-[#007A5A] hover:bg-[#007A5A]">Submit</Button>
-                                                            <DialogClose asChild>
-                                                                <Button variant="ghost">Cancel</Button>
-                                                            </DialogClose>
+
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</p>
+                                                            <p className="whitespace-pre-wrap">{ticket.description}</p>
                                                         </div>
-                                                    </DialogContent>
-                                                </Dialog>
-                                            </>
-                                            <div className='grid grid-cols-2'>
-                                                <div className='space-y-4'>
-                                                    <p className='text-sm'><strong>Created At:</strong> {new Date(ticket.createdAt).toLocaleDateString()}</p>
-                                                    <p className='text-sm'><strong>Category:</strong> {ticket.category}</p>
-                                                    <p className='text-sm'><strong>Subcategory:</strong> {ticket.subcategory}</p>
-                                                    <h1 className='text-sm'><strong>Subject:</strong> {ticket.subject}</h1>
-                                                    <p className='text-sm'><strong>Description:</strong> {ticket.description}</p>
-                                                </div>
-                                                {ticket.fileUrl && ticket.fileUrl.length > 0 && (
-                                                    <div className='-ml-20'>
-                                                        <p className="text-sm font-semibold"><strong>Attachments:</strong></p>
-                                                        <div className="grid  grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 ">
+                                                    </div>
+                                                </TabsContent>
+
+                                                <TabsContent value="attachments">
+                                                    {ticket.fileUrl && ticket.fileUrl.length > 0 ? (
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                                             {ticket.fileUrl.map((url, index) => (
-                                                                <div key={index} className="relative group">
-                                                                    <a href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg">
+                                                                <a
+                                                                    key={index}
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="block group"
+                                                                >
+                                                                    <div className="relative aspect-square rounded-md overflow-hidden border dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all">
                                                                         <img
                                                                             src={url}
                                                                             alt={`Attachment ${index}`}
-                                                                            className="w-full h-full object-cover transition-opacity duration-300 ease-in-out group-hover:opacity-70"
+                                                                            className="w-full h-full object-cover"
                                                                         />
-                                                                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100">
-                                                                            <h1 className="text-white text-xs font-bold">Click to open</h1>
+                                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                            <span className="text-white text-sm font-medium">View</span>
                                                                         </div>
-                                                                    </a>
-                                                                </div>
+                                                                    </div>
+                                                                </a>
                                                             ))}
                                                         </div>
+                                                    ) : (
+                                                        <p className="text-gray-500 dark:text-gray-400">No attachments available</p>
+                                                    )}
+                                                </TabsContent>
+
+                                                <TabsContent value="actions" className="space-y-4">
+                                                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Update Status</h3>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        <Button
+                                                            onClick={() => handleStatusButtonClick('In Resolution')}
+                                                            variant="outline"
+                                                            className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+                                                        >
+                                                            In Resolution
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleStatusButtonClick('Closed')}
+                                                            variant="outline"
+                                                            className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                                                        >
+                                                            Closed
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleStatusButtonClick('Pending')}
+                                                            variant="outline"
+                                                            className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+                                                        >
+                                                            Pending
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleStatusButtonClick('Cancelled')}
+                                                            variant="outline"
+                                                            className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+                                                        >
+                                                            Cancelled
+                                                        </Button>
+                                                    </div>
+                                                </TabsContent>
+                                            </Tabs>
+                                            </CardContent>
+                                    </Card>
+
+                                    {/* Status Update Dialog */}
+                                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                        <DialogContent className="dark:text-white rounded-lg z-[100] sm:max-w-md">
+                                            <div className="space-y-4">
+                                                <h2 className="text-lg font-semibold">
+                                                    Update Status: <Badge className={getStatusColor(statusToUpdate)}>{statusToUpdate}</Badge>
+                                                </h2>
+
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                        Add a comment (required)
+                                                    </label>
+                                                    <textarea
+                                                        value={comment}
+                                                        onChange={handleCommentChange}
+                                                        placeholder="Explain why you're changing the status..."
+                                                        rows={4}
+                                                        className="w-full border rounded-md p-2 dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                                        <Paperclip className="h-4 w-4" />
+                                                        Attachments (optional)
+                                                    </label>
+                                                    <input
+                                                        type="file"
+                                                        onChange={handleFileChange}
+                                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+                                                        file:rounded-md file:border-0 file:text-sm file:font-semibold
+                                                        file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100
+                                                        dark:file:bg-blue-900 dark:file:text-blue-200"
+                                                        multiple
+                                                    />
+                                                </div>
+
+                                                {files.length > 0 && (
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {files.map((file, index) => (
+                                                            <div key={index} className="relative group">
+                                                                <img
+                                                                    src={URL.createObjectURL(file)}
+                                                                    alt={`File ${index}`}
+                                                                    className="w-full h-20 object-cover rounded-md"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleFileRemove(file)}
+                                                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1
+                                                                    shadow-md hover:bg-red-600 transition-colors"
+                                                                >
+                                                                    <X className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 )}
 
+                                                <div className="flex justify-end gap-3 pt-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="outline">Cancel</Button>
+                                                    </DialogClose>
+                                                    <Button onClick={handleStatusUpdate} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                        Update Status
+                                                    </Button>
+                                                </div>
                                             </div>
+                                        </DialogContent>
+                                    </Dialog>
+
+                                    {/* Comments Section */}
+                                    <div className="mb-8">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <MessageCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                            <h2 className="text-lg font-semibold">Communication History</h2>
                                         </div>
-                                        <div className='flex text-lg    gap-2'>
-                                            <CheckCheck className='h-7' />
-                                            <h1>Ticket Updates</h1>
-                                        </div>
-                                        <div className='mt-6'>
-                                            {comments.length > 0 ? (
-                                                <ul className='space-y-2'>
-                                                    {comments.map((c, index) => (
-                                                        <div key={index} className='p-4  border border-gray-700  scrollbar-hide  gap-2 rounded text-sm'>
-                                                            <div className='flex gap-2'>
-                                                                <Avatar className='mt-1'>
+
+                                        {comments.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {comments.map((comment, index) => (
+                                                    <Card key={index} className="border dark:border-gray-700 dark:bg-gray-900 shadow-sm">
+                                                        <CardHeader className="pb-2">
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar className="bg-blue-600  rounded-full h-10 w-10 flex items-center justify-items-center">
                                                                     <AvatarImage src="/placeholder-user.jpg" />
-                                                                    <AvatarFallback className='bg-[#815BF5] rounded-full p-1 text-white'>
-                                                                        {c.userId?.firstName?.charAt(0)}{c.userId?.lastName?.charAt(0)}
+                                                                    <AvatarFallback className="justify-center  m-auto text-white text-  rounded-full">
+                                                                        {comment.userId?.firstName?.charAt(0)}{comment.userId?.lastName?.charAt(0)}
                                                                     </AvatarFallback>
                                                                 </Avatar>
-                                                                <div className='flex flex-col'>
-                                                                    <p><strong>{c?.userId?.firstName}</strong></p>
-                                                                    <p><strong>{c.userId?.lastName}</strong></p>
+                                                                <div>
+                                                                    <p className="font-medium">
+                                                                        {comment.userId?.firstName} {comment.userId?.lastName}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        {formatDate(comment.createdAt)}
+                                                                    </p>
                                                                 </div>
                                                             </div>
-                                                            <div className='px-2 ml-6'>
-                                                                <p className='text-xs text-gray-200'>{new Date(c.createdAt).toLocaleString()}</p>
+                                                        </CardHeader>
+                                                        <CardContent className="pt-2">
+                                                            <div className="prose-sm dark:prose-invert max-w-none">
+                                                                <p>{comment.content}</p>
                                                             </div>
-                                                            <div className='ml-6 max-w-2xl break-words'>
-                                                                <h1 className='p-2 text-xs w-full'>{c.content}</h1>
-                                                            </div>
-                                                            <div className='flex justify-end'>
-                                                                {c.fileUrls && c.fileUrls.length > 0 && (
-                                                                    <div className='relative'>
-                                                                        <div className='flex gap-2  -mt-20 right-0'>
-                                                                            {c.fileUrls.map((url, index) => (
-                                                                                <div key={index} className='mb-2'>
-                                                                                    <a href={url} target="_blank" rel="noopener noreferrer">
-                                                                                        <img
-                                                                                            src={url}
-                                                                                            alt={`Comment Attachment ${index}`}
-                                                                                            className="object-cover w-36 h-full max-w-4xl max-h-32 rounded-lg"
-                                                                                        />
-                                                                                        <h1 className="text-xs text-center mt-1 hover:underline">Click to open</h1>
-                                                                                    </a>
+
+                                                            {comment.fileUrls && comment.fileUrls.length > 0 && (
+                                                                <div className="mt-3 pt-3 border-t dark:border-gray-700">
+                                                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                                                        Attachments ({comment.fileUrls.length})
+                                                                    </p>
+                                                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                                                        {comment.fileUrls.map((url, idx) => (
+                                                                            <a
+                                                                                key={idx}
+                                                                                href={url}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="block group"
+                                                                            >
+                                                                                <div className="relative rounded border dark:border-gray-700 overflow-hidden aspect-square">
+                                                                                    <img
+                                                                                        src={url}
+                                                                                        alt={`Attachment ${idx}`}
+                                                                                        className="w-full h-full object-cover"
+                                                                                    />
+                                                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                                        <span className="text-white text-xs">View</span>
+                                                                                    </div>
                                                                                 </div>
-                                                                            ))}
-                                                                        </div>
+                                                                            </a>
+                                                                        ))}
                                                                     </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                                </div>
+                                                            )}
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <Card className="border dark:border-gray-700 dark:bg-gray-900">
+                                                <CardContent className="flex flex-col items-center justify-center py-6">
+                                                    <MessageCircle className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
+                                                    <p className="text-gray-500 dark:text-gray-400">No comments yet</p>
+                                                </CardContent>
+                                            </Card>
+                                        )}
+                                    </div>
 
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <p className='text-sm'>No comments yet.</p>
-                                            )}
-                                        </div>
-
-                                        <div className=' border border-gray-700 rounded p-4'>
-                                            <h1 className='uppercase font-bold'>Reply</h1>
-                                            <form onSubmit={handleCommentSubmit} className='mt-4'>
-                                                <textarea
-                                                    value={comment}
-                                                    onChange={handleCommentChange}
-                                                    placeholder='Type your comment here'
-                                                    rows={4}
-                                                    className='w-full p-2 x bg-[#0B0D29] outline-none  rounded'
-                                                />
-
-                                                <input
-                                                    type='file'
-                                                    onChange={handleFileChange}
-                                                    className='my-2'
-                                                />
-                                                <div className='flex justify-end'>
-                                                    <Button type='submit' className='bg-[#007A5A] hover:bg-[#007A5A]'>Submit</Button>
-
+                                    {/* Reply Form */}
+                                    <Card className="border dark:border-gray-700 dark:bg-gray-900 shadow-sm mb-10">
+                                        <CardHeader className="pb-2">
+                                            <CardTitle className="text-md font-medium">Add Reply</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <form onSubmit={handleCommentSubmit} className="space-y-4">
+                                                <div>
+                                                    <textarea
+                                                        value={comment}
+                                                        onChange={handleCommentChange}
+                                                        placeholder="Type your reply here..."
+                                                        rows={4}
+                                                        className="w-full border rounded-md p-3 dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    />
                                                 </div>
 
-                                                <div className='flex gap-2 flex-wrap mt-2'>
-                                                    {files.map((file, index) => (
-                                                        <div key={index} className='relative  w-32 h-32 mb-2'>
-                                                            <img
-                                                                src={URL.createObjectURL(file)}
-                                                                alt={`File ${index}`}
-                                                                className='object-cover w-full h-full rounded-lg'
-                                                            />
-                                                            <button
-                                                                type='button'
-                                                                onClick={() => handleFileRemove(file)}
-                                                                className='absolute top-1 right-1 bg-red-600 text-white rounded-full p-1'
-                                                            >
-                                                                <X className='h-4 w-4' />
-                                                            </button>
-                                                        </div>
-                                                    ))}
+                                                <div>
+                                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        <Paperclip className="h-4 w-4" />
+                                                        Attach files (optional)
+                                                    </label>
+                                                    <input
+                                                        type="file"
+                                                        onChange={handleFileChange}
+                                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+                                                        file:rounded-md file:border-0 file:text-sm file:font-semibold
+                                                        file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100
+                                                        dark:file:bg-blue-900 dark:file:text-blue-200"
+                                                        multiple
+                                                    />
+                                                </div>
+
+                                                {files.length > 0 && (
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                        {files.map((file, index) => (
+                                                            <div key={index} className="relative">
+                                                                <img
+                                                                    src={URL.createObjectURL(file)}
+                                                                    alt={`File ${index}`}
+                                                                    className="aspect-square object-cover rounded-md"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleFileRemove(file)}
+                                                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-md"
+                                                                >
+                                                                    <X className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        type="submit"
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                    >
+                                                        Send Reply
+                                                    </Button>
                                                 </div>
                                             </form>
-                                        </div>
-                                    </>
-                                )}
-
-                            </div>
-                        )
-                        }
-                    </div >
+                                        </CardContent>
+                                    </Card>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
-        </div >
+        </div>
     )
 }

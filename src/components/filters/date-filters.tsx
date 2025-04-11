@@ -7,7 +7,7 @@ type Props = {
 
 export default function DateFilters({ onDateFilterChange }: Props) {
     const [selectedFilter, setSelectedFilter] = useState("All Time");
-    
+
     const timeFilters = [
         "Today", "Yesterday", "This Week", "Last Week", "This Month", "Last Month", "This Year", "All Time", "Custom",
     ];
@@ -25,7 +25,9 @@ export default function DateFilters({ onDateFilterChange }: Props) {
                         key={filter}
                         variant={selectedFilter === filter ? "default" : "ghost"}
                         onClick={() => handleFilterChange(filter)}
-                        className={selectedFilter === filter ? "b  text-xs h-7 text-white bg-[#815bf5] hover:bg-[#815bf5]" : "text-gray-400 h-7 border text-xs border-gray-700 hover:text-gray-400 hover:bg-transparent"}
+                        className={selectedFilter === filter
+                            ? "b text-xs h-7 text-white bg-[#5b46d9] hover:bg-[#4a3bb8]"
+                            : "text-gray-600 h-7 border text-xs border-gray-300 hover:text-gray-700 hover:bg-gray-50"}
                     >
                         {filter}
                     </Button>

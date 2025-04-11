@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
     try {
-        const { organizationId, extensionDays, revoke } = await request.json();
+        const { organizationId, extensionDays, revoke, credits } = await request.json();
 
-        if (!organizationId || (!extensionDays && !revoke)) {
+        if (!organizationId || (!extensionDays && !revoke && credits === undefined)) {
             return NextResponse.json({ error: "Invalid input." }, { status: 400 });
         }
 
@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest) {
         if (revoke) {
             // Set trialExpires to now
             organization.trialExpires = new Date();
-        } else {
+        } else if (extensionDays) {
             // Validate extensionDays
             if (extensionDays <= 0) {
                 return NextResponse.json({ error: "Extension days must be a positive number." }, { status: 400 });
@@ -77,6 +77,9 @@ export async function PATCH(request: NextRequest) {
             const newTrialDate = new Date(organization.trialExpires || Date.now());
             newTrialDate.setDate(newTrialDate.getDate() + extensionDays);
             organization.trialExpires = newTrialDate;
+        } else if (credits !== undefined) {
+            // Update organization credits
+            organization.credits = credits;
         }
 
         await organization.save();

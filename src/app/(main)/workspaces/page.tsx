@@ -21,7 +21,7 @@ export default function Organizations() {
                 </div>
                 <div className="w-full overflow-y-scroll scrollbar-hide  h-screen">
                     <InfoBar />
-                    <div className={`${isCollapsed ? "ml-20" : "ml-0"
+                    <div className={`${isCollapsed ? "ml-16 " : "ml-0"
                         }`}>
                         <WorkspacesTable setIsCollapsed={setIsCollapsed} isCollapsed={isCollapsed} />
                     </div>

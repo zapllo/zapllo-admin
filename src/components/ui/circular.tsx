@@ -60,7 +60,7 @@ function CircularProgress({
           cy={size / 2}
         />
       </svg>
-      <span className="absolute text-sm text-white">{value}%</span>
+      <span className="absolute text-sm text-black">{value}%</span>
     </div>
   );
 }

@@ -168,25 +168,24 @@ export default function OrganizationTable({ statusFilter, useMockData }: Organiz
   const displayedData = useMockData ? sortedMockData : filteredOrganizations;
 
   return (
-    <div className="rounded-lg border border-gray-800 bg-[#04061e] p-4">
-
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <Table>
         <TableHeader>
-          <TableRow className="h-[58px] border-gray-800 hover:bg-gray-900">
-            <TableHead className="text-gray-400">RANK</TableHead>
-            <TableHead className="text-gray-400">COMPANY NAME</TableHead>
-            <TableHead className="text-gray-400">OWNER</TableHead>
-            <TableHead className="text-gray-400">TOTAL TASKS</TableHead>
-            <TableHead className="text-gray-400">COMPLETION</TableHead>
-            <TableHead className="text-gray-400">TASK USERS</TableHead>
-            <TableHead className="text-gray-400">SUBSCRIBERS</TableHead>
-            <TableHead className="text-gray-400">RENEWAL DATE</TableHead>
-            <TableHead className="text-gray-400">ACTION</TableHead>
+          <TableRow className="h-[58px] border-gray-100 hover:bg-gray-50">
+            <TableHead className="text-gray-600">RANK</TableHead>
+            <TableHead className="text-gray-600">COMPANY NAME</TableHead>
+            <TableHead className="text-gray-600">OWNER</TableHead>
+            <TableHead className="text-gray-600">TOTAL TASKS</TableHead>
+            <TableHead className="text-gray-600">COMPLETION</TableHead>
+            <TableHead className="text-gray-600">TASK USERS</TableHead>
+            <TableHead className="text-gray-600">SUBSCRIBERS</TableHead>
+            <TableHead className="text-gray-600">RENEWAL DATE</TableHead>
+            <TableHead className="text-gray-600">ACTION</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {displayedData.map((org, index) => (
-            <TableRow key={index} className="border-gray-800 h-[64px] hover:bg-gray-800/50">
+            <TableRow key={index} className="border-gray-100 h-[64px] hover:bg-gray-50">
               <TableCell>
                 {org.rank <= 3 ? (
                   <img src={`/${["first", "second", "third"][org.rank - 1]}.png`} alt="Rank Badge" />
@@ -197,29 +196,28 @@ export default function OrganizationTable({ statusFilter, useMockData }: Organiz
                 )}
               </TableCell>
               <TableCell>
-                <div className="font-medium text-white">{org.name}</div>
+                <div className="font-medium text-gray-900">{org.name}</div>
               </TableCell>
-              <TableCell className="text-gray-400">{org.owner || "N/A"}</TableCell>
-              <TableCell className="text-gray-400">{org.totalTasks || "N/A"}</TableCell>
+              <TableCell className="text-gray-600">{org.owner || "N/A"}</TableCell>
+              <TableCell className="text-gray-600">{org.totalTasks || "N/A"}</TableCell>
               <TableCell>
                 {org.completion !== undefined ? (
                   <CircularProgress value={org.completion} />
                 ) : (
-                  <span className="text-gray-400">N/A</span>
+                  <span className="text-gray-600">N/A</span>
                 )}
               </TableCell>
-              <TableCell className="text-gray-400">{org.taskUsers || "N/A"}</TableCell>
-              <TableCell className="text-gray-400">
-                <span className="text-white">{org.subscribers || "N/A"}</span>
-                <span className="text-gray-400"> / {org.maxSubscribers || "N/A"}</span>
+              <TableCell className="text-gray-600">{org.taskUsers || "N/A"}</TableCell>
+              <TableCell className="text-gray-600">
+                <span className="text-gray-800">{org.subscribers || "N/A"}</span>
+                <span className="text-gray-600"> / {org.maxSubscribers || "N/A"}</span>
               </TableCell>
-              <TableCell className="text-white">{org.renewalDate || "N/A"}</TableCell>
-              <TableCell className="text-white">
-                <button className="text-[#815BF5] hover:underline">
+              <TableCell className="text-gray-800">{org.renewalDate || "N/A"}</TableCell>
+              <TableCell className="text-gray-800">
+                <button className="text-[#5b46d9] hover:underline">
                   <Eye />
                 </button>
               </TableCell>
-
             </TableRow>
           ))}
         </TableBody>

@@ -61,7 +61,7 @@ export default function TicketDashboard({ }: Props) {
                     <InfoBar />
 
                     </div>
-                    <div className={`${isCollapsed ? "ml-20" : "ml-0"
+                    <div className={`${isCollapsed ? "ml-16" : "ml-0"
                         }`}>
                         <TicketsTable setIsCollapsed={setIsCollapsed} isCollapsed={isCollapsed} />
                     </div>

@@ -190,60 +190,61 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
   }, [allStatsData, selectedDateFilter, useMockData]);
 
   return (
-    <div className="flex min-h-screen mt-12 bg-[#04061e] ">
-      {/* <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} /> */}
+    <div className="flex min-h-screen mt-12 bg-[#f8f9fa]">
+    {/* <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} /> */}
 
+    {/* Main Content */}
+    <div
+      className={cn(
+        "flex-1 transition-all duration-300",
+        isCollapsed ? "ml-0" : "ml-64"
+      )}
+    >
+      {/* <Infobar />a */}
       {/* Main Content */}
-      <div
-        className={cn(
-          "flex-1 transition-all  duration-300",
-          isCollapsed ? "ml-0" : "ml-64"
-        )}
-      >
-        {/* <Infobar />a */}
-        {/* Main Content */}
-        <main className="p-6  ">
-          {/* Stats */}
-          <Stats statsData={statsData} />
+      <main className="p-6">
+        {/* Stats */}
+        <Stats statsData={statsData} />
 
+        <DateFilters onDateFilterChange={setSelectedDateFilter} />
 
-
-          <DateFilters onDateFilterChange={setSelectedDateFilter} />
-
-          {/* Status Filters */}
-          <div className="">
-            <div className="flex items-center mb-4 justify-between">
-              <div className="flex gap-2 mt-12">
-                {statusFilters.map((filter) => (
-                  <Button
-                    key={filter}
-                    variant={selectedStatusFilter === filter ? "default" : "ghost"}
-                    onClick={() => setSelectedStatusFilter(filter)}
-                    className={selectedStatusFilter === filter ? "b  text-xs h-7 text-white bg-[#815bf5] hover:bg-[#815bf5]" : "text-gray-400 h-7 border text-xs border-gray-700 hover:text-gray-400 hover:bg-transparent"}
-                  >
-                    {filter}
-                  </Button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">Reversed</span>
-                <Switch />
-              </div>
+        {/* Status Filters */}
+        <div className="">
+          <div className="flex items-center mb-4 justify-between">
+            <div className="flex gap-2 mt-12">
+              {statusFilters.map((filter) => (
+                <Button
+                  key={filter}
+                  variant={selectedStatusFilter === filter ? "default" : "ghost"}
+                  onClick={() => setSelectedStatusFilter(filter)}
+                  className={selectedStatusFilter === filter
+                    ? "b text-xs h-7 text-white bg-[#5b46d9] hover:bg-[#4a3bb8]"
+                    : "text-gray-600 h-7 border text-xs border-gray-300 hover:text-gray-700 hover:bg-gray-100"}
+                >
+                  {filter}
+                </Button>
+              ))}
             </div>
-
-
-
-
-            <div className="flex items-center justify-end gap-2 mb-4">
-              <Switch className="invert-[100] scale-75" checked={useMockData} onCheckedChange={() => setUseMockData(!useMockData)} />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Reversed</span>
+              <Switch />
             </div>
           </div>
-          {/* Table */}
-          <OrganizationTable statusFilter={selectedStatusFilter} useMockData={useMockData} />
-        </main>
-      </div >
-    </div >
+
+          <div className="flex items-center justify-end gap-2 mb-4">
+            <Switch
+              className="scale-75"
+              checked={useMockData}
+              onCheckedChange={() => setUseMockData(!useMockData)}
+            />
+          </div>
+        </div>
+        {/* Table */}
+        <OrganizationTable statusFilter={selectedStatusFilter} useMockData={useMockData} />
+      </main>
+    </div>
+  </div>
   );
 }
 
-export default Dashboard; 
+export default Dashboard;

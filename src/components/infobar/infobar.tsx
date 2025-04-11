@@ -188,21 +188,21 @@ const InfoBar = (props: Props) => {
             loop
             className="h-48"
             autoplay
-          /> 
-                
+          />
+
               </div>
           </div>
       </div>
   </div>
       )}
       <div className="  fixed  w-[100%]  z-[10]">
-        <div className="  items-center w-[100%] py-2 ml-6 z-[10] flex flex-row  bg-[#04061E]">
+        <div className="  items-center w-[100%] py-2 ml-6 z-[10] flex flex-row  bg-[#ffffff]">
           {/* <img src='/icons/ellipse.png' className='absolute h-[50%] z-[10]   opacity-30 -ml-32 ' /> */}
           <div
             className={`flex   items-center   ml-[6%] w-screen
               }`}
           >
-            <h1 className={`text-md mt-1 text-white font-bold `}>
+            <h1 className={`text-md mt-1 text-black font-bold `}>
               {getPageTitle()}
             </h1>
           </div>
@@ -250,7 +250,7 @@ const InfoBar = (props: Props) => {
 
 
                   <div className="">
-                    <h1 className="text-[#ffffff] text-sm ">{firstName}</h1>
+                    <h1 className="text-[#000000] text-sm ">{firstName}</h1>
                     {role === "orgAdmin" ? (
                       <h1 className=" text-[10px] text-muted-foreground font-thin ">
                         Admin
@@ -258,7 +258,7 @@ const InfoBar = (props: Props) => {
                     ) : role === "manager" ? (
                       <h1 className="text-[10px]">Manager</h1>
                     ) : role === "Admin" ? (
-                      <h1 className="text-[10px] text-white">Super Admin</h1>
+                      <h1 className="text-[10px] text-black">Super Admin</h1>
                     ) : (
                       <h1 className="text-[10px]">Member</h1>
                     )}

@@ -75,7 +75,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
         <div
             className={cn(
                 "bg-[#0f1025] flex flex-col fixed h-full z-[100] transition-all duration-300",
-                isCollapsed ? "w-20" : "w-64"
+                isCollapsed ? "w-16" : "w-64"
             )}
         >
             <div className="flex h-16 items-center justify-between px-4 border-b border-gray-800">

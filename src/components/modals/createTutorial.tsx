@@ -17,6 +17,7 @@ const categoryOptions = [
   "Task Delegation App",
   "Leave and Attendance App",
   "Zapllo WABA",
+  "Zapllo CRM"
 ];
 
 export default function CreateTutorialDialog({
@@ -96,14 +97,12 @@ export default function CreateTutorialDialog({
           Create Tutorial
         </button>
       </DialogTrigger>
-      <DialogContent className="p-6">
+      <DialogContent className="p-6 z-[100]">
         <div className="flex justify-between w-full">
           <DialogHeader>
-            <DialogTitle className="text-white ml-4">Create a New Tutorial</DialogTitle>
+            <DialogTitle className="text- ml-4">Create a New Tutorial</DialogTitle>
           </DialogHeader>
-          <DialogClose>
-            <X className="text-white cursor-pointer" />
-          </DialogClose>
+
         </div>
         <form onSubmit={handleSubmit}>
           <div className="p-4 space-y-4">
@@ -119,7 +118,7 @@ export default function CreateTutorialDialog({
               type="file"
               accept="image/*"
               onChange={handleFileChange}
-              className="w-full px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
+              className="w-full px-4 py-2 border bord-700 rounded bg-transparent outline-none text-"
               required
             />
             <input
@@ -127,13 +126,13 @@ export default function CreateTutorialDialog({
               placeholder="Link"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-700 rounded bg-transparent outline-none text-white"
+              className="w-full px-4 py-2 border border-700 rounded bg-transparent outline-none text-"
               required
             />
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-700 rounded bg-[#0B0D29] outline-none text-white"
+              className="w-full px-4 py-2 border border-700 rounded bg-[#] outline-none text-"
               required
             >
               <option value="">Select Category</option>

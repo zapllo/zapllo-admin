@@ -83,7 +83,9 @@ export async function POST(
     });
 
     const savedUser = await newUser.save();
-
+    // Flag to track if notifications were sent successfully
+    let notificationSuccess = true;
+    let emailError, whatsappError;
     // Email content
     const emailSubject = `Welcome to Zapllo - You've been added to ${organization.companyName}!`;
     const emailHtml = `
@@ -120,8 +122,14 @@ export async function POST(
       html: emailHtml,
     };
 
-    // Send the email
-    await sendEmail(emailOptions);
+     // Try to send email but continue if it fails
+     try {
+      await sendEmail(emailOptions);
+    } catch (error) {
+      notificationSuccess = false;
+      emailError = error;
+      console.error("Failed to send email notification:", error);
+    }
 
     // WhatsApp content
     const bodyVariables = [
@@ -133,21 +141,45 @@ export async function POST(
 
     const templateName = "loginsuccessmember";
 
-    // Send WhatsApp notification
-    await sendWebhookNotification(whatsappNo, country, templateName, bodyVariables);
-
-    // Return success response
-    return NextResponse.json({
-      message: "User added successfully to the organization.",
-      user: {
-        firstName,
-        lastName,
-        email,
-        whatsappNo,
-        role,
-        organization: organizationId,
-      },
-    });
+    // Try to send WhatsApp notification but continue if it fails
+    try {
+      await sendWebhookNotification(whatsappNo, country, templateName, bodyVariables);
+    } catch (error) {
+      notificationSuccess = false;
+      whatsappError = error;
+      console.error("Failed to send WhatsApp notification:", error);
+    }
+    if (notificationSuccess) {
+      return NextResponse.json({
+        message: "User added successfully to the organization.",
+        user: {
+          firstName,
+          lastName,
+          email,
+          whatsappNo,
+          role,
+          organization: organizationId,
+        },
+      });
+    } else {
+      // Return a partial success response when user is created but notifications failed
+      return NextResponse.json({
+        message: "User added successfully but notification delivery failed.",
+        partialSuccess: true,
+        user: {
+          firstName,
+          lastName,
+          email,
+          whatsappNo,
+          role,
+          organization: organizationId,
+        },
+        errors: {
+          email: emailError ? "Email notification failed" : null,
+          whatsapp: whatsappError ? "WhatsApp notification failed" : null,
+        }
+      });
+    }
   } catch (error: any) {
     console.error("Error adding user:", error.message);
     return NextResponse.json({ error: "Failed to add user." }, { status: 500 });
