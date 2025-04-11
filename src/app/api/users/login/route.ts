@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "User does not exist" }, { status: 400 });
         }
 
-        // Check if the role is Admin
+        // Check if the role is orgAdmin
         if (user.role !== "Admin") {
             return NextResponse.json({ error: "Access restricted to Admins only" }, { status: 403 });
         }

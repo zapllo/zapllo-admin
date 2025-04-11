@@ -55,7 +55,7 @@ export interface IUser extends Document {
     password: string;
     isVerified: boolean;
     isAdmin: boolean;
-    role: 'member' | 'manager' | 'orgAdmin';
+    role: 'member' | 'manager' | 'orgAdmin' | 'Admin';
     reportingManager: mongoose.Types.ObjectId | null;
     organization: mongoose.Types.ObjectId | null;
     notifications: {
