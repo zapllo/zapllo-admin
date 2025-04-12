@@ -190,7 +190,7 @@ function Dashboard({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
   }, [allStatsData, selectedDateFilter, useMockData]);
 
   return (
-    <div className="flex min-h-screen mt-12 bg-[#f8f9fa]">
+    <div className="flex min-h-screen mt-20 bg-[#f8f9fa]">
     {/* <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} /> */}
 
     {/* Main Content */}

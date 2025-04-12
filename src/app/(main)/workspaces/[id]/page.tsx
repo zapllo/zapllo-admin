@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import AdminSidebar from '@/components/sidebar/adminSidebar';
 import InfoBar from '@/components/infobar/infobar';
 import {
-  Building, Calendar, Clock, CreditCard, Info, PlusCircle,
-  Shield, Trash2, Users, Wallet, Eye, EyeOff, Pencil, MoreVertical
+    Building, Calendar, Clock, CreditCard, Info, PlusCircle,
+    Shield, Trash2, Users, Wallet, Eye, EyeOff, Pencil, MoreVertical
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
@@ -58,8 +58,51 @@ export default function OrganizationDetailsPage() {
     const [viewUserDetails, setViewUserDetails] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [renewSubscriptionOpen, setRenewSubscriptionOpen] = useState(false);
+    const [subscriptionDays, setSubscriptionDays] = useState<number | undefined>();
+
     const usersPerPage = 10;
     const router = useRouter();
+
+
+    const [updateSubscribedUsersOpen, setUpdateSubscribedUsersOpen] = useState(false);
+    const [subscribedUserCount, setSubscribedUserCount] = useState<number | undefined>();
+
+    // Add this new handler function
+    const handleUpdateSubscribedUsers = async () => {
+        try {
+            if (subscribedUserCount === undefined || subscribedUserCount < 0) {
+                toast.error("Please enter a valid number of users");
+                return;
+            }
+
+            const res = await fetch(`/api/organizations/${id}/update-subscribed-users`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ subscribedUserCount }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Failed to update subscribed user count.");
+            }
+
+            toast.success("Subscribed user count updated successfully!");
+            setUpdateSubscribedUsersOpen(false);
+
+            // Refresh organization data
+            const resOrg = await fetch(`/api/organizations/${id}`);
+            if (!resOrg.ok) {
+                throw new Error("Failed to refresh organization data");
+            }
+            const { organization } = await resOrg.json();
+            setOrganization(organization);
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
 
     // Fetch organization data
     useEffect(() => {
@@ -173,6 +216,46 @@ export default function OrganizationDetailsPage() {
             )
         );
         return daysRemaining;
+    };
+
+    const handleRenewSubscription = async () => {
+        try {
+            if (!subscriptionDays || subscriptionDays <= 0) {
+                toast.error("Please enter a valid number of days");
+                return;
+            }
+
+            const res = await fetch('/api/organizations/subscription', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    organizationId: id,
+                    extensionDays: subscriptionDays
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Failed to renew subscription.");
+            }
+
+            const data = await res.json();
+            toast.success("Subscription renewed successfully!");
+            setRenewSubscriptionOpen(false);
+            setSubscriptionDays(undefined);
+
+            // Refresh organization data
+            const resOrg = await fetch(`/api/organizations/${id}`);
+            if (!resOrg.ok) {
+                throw new Error("Failed to refresh organization data");
+            }
+            const { organization } = await resOrg.json();
+            setOrganization(organization);
+        } catch (error: any) {
+            toast.error(error.message);
+        }
     };
 
     const handleExtendTrial = async () => {
@@ -473,7 +556,28 @@ export default function OrganizationDetailsPage() {
 
     const daysRemaining = calculateDaysRemaining();
     const trialStatus = daysRemaining > 0 ? 'active' : 'expired';
+    const hasActiveSubscription = organization.subscriptionExpires &&
+        new Date(organization.subscriptionExpires) > new Date();
 
+    const getStatusBadge = () => {
+        // If subscription is active, show that regardless of trial status
+        if (hasActiveSubscription) {
+            return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                Active Subscription
+            </Badge>;
+        }
+
+        // Otherwise, show trial status
+        if (trialStatus === 'active') {
+            return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                Trial: {daysRemaining} days left
+            </Badge>;
+        } else {
+            return <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">
+                Trial expired
+            </Badge>;
+        }
+    };
     return (
         <div className="bg-gray-50 min-h-screen">
             <div className={`flex h-full w-full`}>
@@ -519,11 +623,6 @@ export default function OrganizationDetailsPage() {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <CardTitle className="text-2xl">{organization.companyName}</CardTitle>
-                                                    <Badge variant={trialStatus === 'active' ? 'outline' : 'destructive'}>
-                                                        {trialStatus === 'active'
-                                                            ? `Trial: ${daysRemaining} days left`
-                                                            : 'Trial expired'}
-                                                    </Badge>
                                                 </div>
                                                 <CardDescription className="mt-1">{organization.industry} • {organization.teamSize} employees</CardDescription>
                                             </div>
@@ -549,6 +648,10 @@ export default function OrganizationDetailsPage() {
                                                 </Button>
                                             </div>
                                         </div>
+                                        <div>
+                                            {getStatusBadge()}
+                                        </div>
+
                                     </CardHeader>
 
                                     <CardContent>
@@ -616,20 +719,31 @@ export default function OrganizationDetailsPage() {
                                         <div>
                                             <h3 className="text-sm font-medium text-gray-500 mb-1">Subscribed Users</h3>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-xl font-medium">{organization.subscribedUserCount || 0}</span>
-                                                <span className="text-sm text-gray-500">out of {stats?.totalUsers || 0}</span>
+                                                <span className="text-xl font-medium">{stats?.totalUsers || 0}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-gray-500">out of {organization.subscribedUserCount || 0}</span>
+                                                    <Button
+                                                        onClick={() => {
+                                                            setSubscribedUserCount(organization.subscribedUserCount);
+                                                            setUpdateSubscribedUsersOpen(true);
+                                                        }}
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-8 px-2"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                             <Progress
-                                                value={stats?.totalUsers ? (organization.subscribedUserCount ? (organization.subscribedUserCount / stats.totalUsers) * 100 : 0) : 0}
+                                                value={organization.subscribedUserCount ? (stats?.totalUsers / organization.subscribedUserCount) * 100 : 0}
                                                 className="h-2 mt-2"
                                             />
                                         </div>
                                     </CardContent>
 
                                     <CardFooter>
-                                        <Button
-                                            className="w-full"
-                                        >
+                                        <Button className="w-full" onClick={() => setRenewSubscriptionOpen(true)}>
                                             Renew Subscription
                                         </Button>
                                     </CardFooter>
@@ -754,818 +868,934 @@ export default function OrganizationDetailsPage() {
                                                         Add your first user
                                                     </Button>
                                                 </div>
-                                      ) : (
-                                        <div className="rounded-md border">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>User</TableHead>
-                                                        <TableHead>Email</TableHead>
-                                                        <TableHead>WhatsApp</TableHead>
-                                                        <TableHead>Role</TableHead>
-                                                        <TableHead>Status</TableHead>
-                                                        <TableHead className="text-right">Actions</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {users.map((user) => (
-                                                        <TableRow key={user._id}>
-                                                            <TableCell className="font-medium">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Avatar className="h-8 w-8">
-                                                                        {user.profilePic ? (
-                                                                            <AvatarImage src={user.profilePic} alt={`${user.firstName} ${user.lastName}`} />
-                                                                        ) : (
-                                                                            <AvatarFallback>
-                                                                                {user.firstName.charAt(0)}{user.lastName.charAt(0)}
-                                                                            </AvatarFallback>
-                                                                        )}
-                                                                    </Avatar>
-                                                                    <span>{user.firstName} {user.lastName}</span>
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell>{user.email}</TableCell>
-                                                            <TableCell>{user.whatsappNo}</TableCell>
-                                                            <TableCell>
-                                                                <Badge variant={user.role === 'orgAdmin' ? 'default' : 'outline'}>
-                                                                    {user.role === 'orgAdmin' ? 'Admin' : user.role === 'manager' ? 'Manager' : 'Member'}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Badge >
-                                                                    {user.status || 'Active'}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
-                                                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                            <span className="sr-only">Open menu</span>
-                                                                            <MoreVertical className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent align="end">
-                                                                        <DropdownMenuItem onClick={() => {
-                                                                            setSelectedUser(user);
-                                                                            setViewUserDetails(true);
-                                                                        }}>
-                                                                            <Eye className="mr-2 h-4 w-4" />
-                                                                            View Details
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                                                                            <Pencil className="mr-2 h-4 w-4" />
-                                                                            Edit
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem
-                                                                            onClick={() => toggleUserStatus(user._id, user.status || 'Active')}
-                                                                        >
-                                                                            {user.status === 'Deactivated' ? (
-                                                                                <>
+                                            ) : (
+                                                <div className="rounded-md border">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>User</TableHead>
+                                                                <TableHead>Email</TableHead>
+                                                                <TableHead>WhatsApp</TableHead>
+                                                                <TableHead>Role</TableHead>
+                                                                <TableHead>Status</TableHead>
+                                                                <TableHead className="text-right">Actions</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {users.map((user) => (
+                                                                <TableRow key={user._id}>
+                                                                    <TableCell className="font-medium">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Avatar className="h-8 w-8">
+                                                                                {user.profilePic ? (
+                                                                                    <AvatarImage src={user.profilePic} alt={`${user.firstName} ${user.lastName}`} />
+                                                                                ) : (
+                                                                                    <AvatarFallback>
+                                                                                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                                                                                    </AvatarFallback>
+                                                                                )}
+                                                                            </Avatar>
+                                                                            <span>{user.firstName} {user.lastName}</span>
+                                                                        </div>
+                                                                    </TableCell>
+                                                                    <TableCell>{user.email}</TableCell>
+                                                                    <TableCell>{user.whatsappNo}</TableCell>
+                                                                    <TableCell>
+                                                                        <Badge variant={user.role === 'orgAdmin' ? 'default' : 'outline'}>
+                                                                            {user.role === 'orgAdmin' ? 'Admin' : user.role === 'manager' ? 'Manager' : 'Member'}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Badge >
+                                                                            {user.status || 'Active'}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right">
+                                                                        <DropdownMenu>
+                                                                            <DropdownMenuTrigger asChild>
+                                                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                                    <span className="sr-only">Open menu</span>
+                                                                                    <MoreVertical className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </DropdownMenuTrigger>
+                                                                            <DropdownMenuContent align="end">
+                                                                                <DropdownMenuItem onClick={() => {
+                                                                                    setSelectedUser(user);
+                                                                                    setViewUserDetails(true);
+                                                                                }}>
                                                                                     <Eye className="mr-2 h-4 w-4" />
-                                                                                    Activate
-                                                                                </>
-                                                                            ) : (
-                                                                                <>
-                                                                                    <EyeOff className="mr-2 h-4 w-4" />
-                                                                                    Deactivate
-                                                                                </>
-                                                                            )}
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem
-                                                                            onClick={() => confirmDeleteUser(user._id)}
-                                                                            className="text-red-600 focus:text-red-600"
-                                                                        >
-                                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                                            Delete
-                                                                        </DropdownMenuItem>
-                                                                    </DropdownMenuContent>
-                                                                </DropdownMenu>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
+                                                                                    View Details
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                                                    Edit
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem
+                                                                                    onClick={() => toggleUserStatus(user._id, user.status || 'Active')}
+                                                                                >
+                                                                                    {user.status === 'Deactivated' ? (
+                                                                                        <>
+                                                                                            <Eye className="mr-2 h-4 w-4" />
+                                                                                            Activate
+                                                                                        </>
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            <EyeOff className="mr-2 h-4 w-4" />
+                                                                                            Deactivate
+                                                                                        </>
+                                                                                    )}
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem
+                                                                                    onClick={() => confirmDeleteUser(user._id)}
+                                                                                    className="text-red-600 focus:text-red-600"
+                                                                                >
+                                                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                                                    Delete
+                                                                                </DropdownMenuItem>
+                                                                            </DropdownMenuContent>
+                                                                        </DropdownMenu>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
 
-                                            {users.length > 0 && totalPages > 1 && (
-                                                <div className="flex items-center justify-between px-4 py-4 border-t">
-                                                    <p className="text-sm text-gray-500">
-                                                        Page {currentPage} of {totalPages}
-                                                    </p>
-                                                    <div className="flex space-x-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            disabled={currentPage === 1}
-                                                            onClick={() => fetchUsers(currentPage - 1)}
-                                                        >
-                                                            Previous
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            disabled={currentPage === totalPages}
-                                                            onClick={() => fetchUsers(currentPage + 1)}
-                                                        >
-                                                            Next
-                                                        </Button>
-                                                    </div>
+                                                    {users.length > 0 && totalPages > 1 && (
+                                                        <div className="flex items-center justify-between px-4 py-4 border-t">
+                                                            <p className="text-sm text-gray-500">
+                                                                Page {currentPage} of {totalPages}
+                                                            </p>
+                                                            <div className="flex space-x-2">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    disabled={currentPage === 1}
+                                                                    onClick={() => fetchUsers(currentPage - 1)}
+                                                                >
+                                                                    Previous
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    disabled={currentPage === totalPages}
+                                                                    onClick={() => fetchUsers(currentPage + 1)}
+                                                                >
+                                                                    Next
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
 
-                        <TabsContent value="tasks">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Tasks</CardTitle>
-                                    <CardDescription>Organization task statistics</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="flex justify-between mb-1">
-                                                <span className="text-sm font-medium">Task Completion</span>
-                                                <span className="text-sm font-medium">{stats?.completedTasksPercentage || 0}%</span>
-                                            </div>
-                                            <Progress value={stats?.completedTasksPercentage || 0} className="h-2" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="p-4 bg-gray-50 rounded-lg">
-                                                <p className="text-sm text-gray-500">Total Tasks</p>
-                                                <p className="text-2xl font-bold">{stats?.totalTasks || 0}</p>
-                                            </div>
-                                            <div className="p-4 bg-gray-50 rounded-lg">
-                                                <p className="text-sm text-gray-500">Completed</p>
-                                                <p className="text-2xl font-bold">{Math.round((stats?.totalTasks || 0) * ((stats?.completedTasksPercentage || 0) / 100))}</p>
-                                            </div>
-                                        </div>
+                                <TabsContent value="tasks">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Tasks</CardTitle>
+                                            <CardDescription>Organization task statistics</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <div className="flex justify-between mb-1">
+                                                        <span className="text-sm font-medium">Task Completion</span>
+                                                        <span className="text-sm font-medium">{stats?.completedTasksPercentage || 0}%</span>
+                                                    </div>
+                                                    <Progress value={stats?.completedTasksPercentage || 0} className="h-2" />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                                        <p className="text-sm text-gray-500">Total Tasks</p>
+                                                        <p className="text-2xl font-bold">{stats?.totalTasks || 0}</p>
+                                                    </div>
+                                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                                        <p className="text-sm text-gray-500">Completed</p>
+                                                        <p className="text-2xl font-bold">{Math.round((stats?.totalTasks || 0) * ((stats?.completedTasksPercentage || 0) / 100))}</p>
+                                                    </div>
+                                                </div>
 
-                                        {loadingTasks ? (
-                                            <div className="flex justify-center py-8">
-                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                            </div>
-                                        ) : tasks.length > 0 ? (
-                                            <div className="rounded-md border mt-4">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>Title</TableHead>
-                                                            <TableHead>Assigned To</TableHead>
-                                                            <TableHead>Due Date</TableHead>
-                                                            <TableHead>Priority</TableHead>
-                                                            <TableHead>Status</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {tasks.slice(0, 5).map((task) => (
-                                                            <TableRow key={task._id}>
-                                                                <TableCell className="font-medium">{task.title}</TableCell>
-                                                                <TableCell>
-                                                                    {task.assignedUser?.firstName} {task.assignedUser?.lastName}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {format(new Date(task.dueDate), "MMM d, yyyy")}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <Badge variant={
-                                                                        task.priority === 'High' ? 'destructive' :
-                                                                        task.priority === 'Medium' ? 'default' :
-                                                                        'outline'
-                                                                    }>
-                                                                        {task.priority}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <Badge >
-                                                                        {task.status}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                                {tasks.length > 5 && (
-                                                    <div className="p-4 text-center">
-                                                        <Button variant="outline" size="sm">
-                                                            View All Tasks
-                                                        </Button>
+                                                {loadingTasks ? (
+                                                    <div className="flex justify-center py-8">
+                                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                    </div>
+                                                ) : tasks.length > 0 ? (
+                                                    <div className="rounded-md border mt-4">
+                                                        <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead>Title</TableHead>
+                                                                    <TableHead>Assigned To</TableHead>
+                                                                    <TableHead>Due Date</TableHead>
+                                                                    <TableHead>Priority</TableHead>
+                                                                    <TableHead>Status</TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {tasks.slice(0, 5).map((task) => (
+                                                                    <TableRow key={task._id}>
+                                                                        <TableCell className="font-medium">{task.title}</TableCell>
+                                                                        <TableCell>
+                                                                            {task.assignedUser?.firstName} {task.assignedUser?.lastName}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {format(new Date(task.dueDate), "MMM d, yyyy")}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Badge variant={
+                                                                                task.priority === 'High' ? 'destructive' :
+                                                                                    task.priority === 'Medium' ? 'default' :
+                                                                                        'outline'
+                                                                            }>
+                                                                                {task.priority}
+                                                                            </Badge>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Badge >
+                                                                                {task.status}
+                                                                            </Badge>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                        {tasks.length > 5 && (
+                                                            <div className="p-4 text-center">
+                                                                <Button variant="outline" size="sm">
+                                                                    View All Tasks
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-8 text-gray-500 mt-4">
+                                                        <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                                        <p>No tasks found in this organization</p>
                                                     </div>
                                                 )}
                                             </div>
-                                        ) : (
-                                            <div className="text-center py-8 text-gray-500 mt-4">
-                                                <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                                <p>No tasks found in this organization</p>
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="tickets">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Support Tickets</CardTitle>
+                                            <CardDescription>Organization support ticket statistics</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-4 bg-gray-50 rounded-lg">
+                                                    <p className="text-sm text-gray-500">Pending Tickets</p>
+                                                    <p className="text-2xl font-bold">{stats?.pendingTickets || 0}</p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-lg">
+                                                    <p className="text-sm text-gray-500">Resolved Tickets</p>
+                                                    <p className="text-2xl font-bold">{stats?.resolvedTickets || 0}</p>
+                                                </div>
                                             </div>
-                                        )}
+
+                                            {loadingTickets ? (
+                                                <div className="flex justify-center py-8">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                </div>
+                                            ) : tickets.length > 0 ? (
+                                                <div className="rounded-md border mt-4">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>Subject</TableHead>
+                                                                <TableHead>User</TableHead>
+                                                                <TableHead>Category</TableHead>
+                                                                <TableHead>Created</TableHead>
+                                                                <TableHead>Status</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {tickets.slice(0, 5).map((ticket) => (
+                                                                <TableRow key={ticket._id}>
+                                                                    <TableCell className="font-medium">{ticket.subject}</TableCell>
+                                                                    <TableCell>
+                                                                        {ticket.user?.firstName} {ticket.user?.lastName}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Badge variant="outline">
+                                                                            {ticket.category}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        {format(new Date(ticket.createdAt), "MMM d, yyyy")}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Badge >
+                                                                            {ticket.status}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                    {tickets.length > 5 && (
+                                                        <div className="p-4 text-center">
+                                                            <Button variant="outline" size="sm">
+                                                                View All Tickets
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8 text-gray-500 mt-4">
+                                                    <Info className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                                    <p>No tickets found in this organization</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+                            </Tabs>
+
+                            {/* Quick Actions Card */}
+                            <Card className="shadow-sm">
+                                <CardHeader>
+                                    <CardTitle>Quick Actions</CardTitle>
+                                    <CardDescription>Manage organization settings and permissions</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <Button
+                                            onClick={() => setDialogOpen(true)}
+                                            variant="outline"
+                                            className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
+                                        >
+                                            <Users className="h-6 w-6" />
+                                            <span>Add User</span>
+                                        </Button>
+
+                                        <Button
+                                            onClick={() => setUpdateCreditsOpen(true)}
+                                            variant="outline"
+                                            className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
+                                        >
+                                            <Wallet className="h-6 w-6" />
+                                            <span>Update Balance</span>
+                                        </Button>
+
+                                        <Button
+                                            onClick={() => setExtendOpen(true)}
+                                            variant="outline"
+                                            className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
+                                        >
+                                            <Clock className="h-6 w-6" />
+                                            <span>Extend Trial</span>
+                                        </Button>
+
+                                        <Button
+                                            variant="outline"
+                                            className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
+                                            onClick={() => setRenewSubscriptionOpen(true)}
+                                        >
+                                            <CreditCard className="h-6 w-6" />
+                                            <span>Renew Subscription</span>
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                setSubscribedUserCount(organization.subscribedUserCount);
+                                                setUpdateSubscribedUsersOpen(true);
+                                            }}
+                                            variant="outline"
+                                            className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
+                                        >
+                                            <Users className="h-6 w-6" />
+                                            <span>Update Users</span>
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
-                        </TabsContent>
 
-                        <TabsContent value="tickets">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Support Tickets</CardTitle>
-                                    <CardDescription>Organization support ticket statistics</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-gray-50 rounded-lg">
-                                            <p className="text-sm text-gray-500">Pending Tickets</p>
-                                            <p className="text-2xl font-bold">{stats?.pendingTickets || 0}</p>
+                            {/* Dialogs */}
+                            <Dialog open={extendOpen} onOpenChange={setExtendOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Extend Trial Period</DialogTitle>
+                                        <DialogDescription>
+                                            Enter the number of days to extend the trial period for {organization.companyName}.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="space-y-4 py-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="rounded-full bg-primary/10 p-3">
+                                                <Clock className="h-6 w-6 text-primary" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-medium">Current Expiry Date</h4>
+                                                <p className="text-sm text-gray-500">
+                                                    {organization.trialExpires ?
+                                                        format(new Date(organization.trialExpires), "PPP") :
+                                                        "No trial date set"}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="p-4 bg-gray-50 rounded-lg">
-                                            <p className="text-sm text-gray-500">Resolved Tickets</p>
-                                            <p className="text-2xl font-bold">{stats?.resolvedTickets || 0}</p>
-                                        </div>
+
+                                        <Input
+                                            type="number"
+                                            value={extensionDays}
+                                            onChange={(e) => setExtensionDays(Number(e.target.value))}
+                                            placeholder="Enter number of days"
+                                            className="w-full"
+                                            min="1"
+                                        />
                                     </div>
 
-                                    {loadingTickets ? (
-                                        <div className="flex justify-center py-8">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setExtendOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={handleExtendTrial}>
+                                            Extend Trial
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            {/* Renew Subscription Dialog */}
+                            <Dialog open={renewSubscriptionOpen} onOpenChange={setRenewSubscriptionOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Renew Subscription</DialogTitle>
+                                        <DialogDescription>
+                                            Enter the number of days to extend the subscription for {organization.companyName}.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="space-y-4 py-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="rounded-full bg-primary/10 p-3">
+                                                <CreditCard className="h-6 w-6 text-primary" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-medium">Current Expiry Date</h4>
+                                                <p className="text-sm text-gray-500">
+                                                    {organization.subscriptionExpires ?
+                                                        format(new Date(organization.subscriptionExpires), "PPP") :
+                                                        "No active subscription"}
+                                                </p>
+                                            </div>
                                         </div>
-                                    ) : tickets.length > 0 ? (
-                                        <div className="rounded-md border mt-4">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>Subject</TableHead>
-                                                        <TableHead>User</TableHead>
-                                                        <TableHead>Category</TableHead>
-                                                        <TableHead>Created</TableHead>
-                                                        <TableHead>Status</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {tickets.slice(0, 5).map((ticket) => (
-                                                        <TableRow key={ticket._id}>
-                                                            <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                                            <TableCell>
-                                                                {ticket.user?.firstName} {ticket.user?.lastName}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Badge variant="outline">
-                                                                    {ticket.category}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {format(new Date(ticket.createdAt), "MMM d, yyyy")}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Badge >
-                                                                    {ticket.status}
-                                                                </Badge>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                            {tickets.length > 5 && (
-                                                <div className="p-4 text-center">
-                                                    <Button variant="outline" size="sm">
-                                                        View All Tickets
-                                                    </Button>
+
+                                        <Input
+                                            type="number"
+                                            value={subscriptionDays}
+                                            onChange={(e) => setSubscriptionDays(Number(e.target.value))}
+                                            placeholder="Enter number of days"
+                                            className="w-full"
+                                            min="1"
+                                        />
+                                    </div>
+
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setRenewSubscriptionOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={handleRenewSubscription}>
+                                            Renew Subscription
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            {/* Update Subscribed Users Dialog */}
+                            <Dialog open={updateSubscribedUsersOpen} onOpenChange={setUpdateSubscribedUsersOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Update Subscribed Users</DialogTitle>
+                                        <DialogDescription>
+                                            Set the number of subscribed users for {organization.companyName}.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="space-y-4 py-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="rounded-full bg-primary/10 p-3">
+                                                <Users className="h-6 w-6 text-primary" />
+                                            </div>
+                                            {/* Update the dialog description */}
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-medium">Current License Count</h4>
+                                                <p className="text-sm text-gray-500">
+                                                    {stats?.totalUsers || 0} active users out of {organization.subscribedUserCount || 0} purchased licenses
+                                                </p>
+                                            </div>
+
+                                            {/* Update the warning logic */}
+                                            {subscribedUserCount !== undefined && stats?.totalUsers && subscribedUserCount < stats.totalUsers && (
+                                                <div className="text-xs text-amber-600 flex items-center gap-1.5">
+                                                    <Info className="h-3.5 w-3.5" />
+                                                    <span>Warning: Setting licenses lower than current active users ({stats.totalUsers})</span>
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-500 mt-4">
-                                            <Info className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                            <p>No tickets found in this organization</p>
+
+                                        <Input
+                                            type="number"
+                                            value={subscribedUserCount}
+                                            onChange={(e) => setSubscribedUserCount(Number(e.target.value))}
+                                            placeholder="Enter number of subscribed users"
+                                            className="w-full"
+                                            min="0"
+                                            max={stats?.totalUsers || 0}
+                                        />
+
+                                        {subscribedUserCount !== undefined && stats?.totalUsers && subscribedUserCount > stats.totalUsers && (
+                                            <div className="text-xs text-amber-600 flex items-center gap-1.5">
+                                                <Info className="h-3.5 w-3.5" />
+                                                <span>Warning: Setting subscribed users higher than total users ({stats.totalUsers})</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setUpdateSubscribedUsersOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={handleUpdateSubscribedUsers}>
+                                            Update Subscribed Users
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <Dialog open={revokeOpen} onOpenChange={setRevokeOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Revoke Trial Period</DialogTitle>
+                                        <DialogDescription>
+                                            Are you sure you want to revoke the trial period for {organization.companyName}? This action cannot be undone.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="py-4">
+                                        <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
+                                            <Shield className="h-6 w-6 text-red-500" />
+                                            <div>
+                                                <h4 className="font-medium text-red-700">Warning</h4>
+                                                <p className="text-sm text-red-600">
+                                                    Revoking the trial will immediately end access to premium features for this organization.
+                                                </p>
+                                            </div>
                                         </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
+                                    </div>
 
-                    {/* Quick Actions Card */}
-                    <Card className="shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Quick Actions</CardTitle>
-                            <CardDescription>Manage organization settings and permissions</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <Button
-                                    onClick={() => setDialogOpen(true)}
-                                    variant="outline"
-                                    className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
-                                >
-                              <Users className="h-6 w-6" />
-                                        <span>Add User</span>
-                                    </Button>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setRevokeOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button variant="destructive" onClick={revokeTrialPeriod}>
+                                            Revoke Trial
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
 
-                                    <Button
-                                        onClick={() => setUpdateCreditsOpen(true)}
-                                        variant="outline"
-                                        className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
-                                    >
-                                        <Wallet className="h-6 w-6" />
-                                        <span>Update Balance</span>
-                                    </Button>
+                            <Dialog open={updateCreditsOpen} onOpenChange={setUpdateCreditsOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Update Wallet Balance</DialogTitle>
+                                        <DialogDescription>
+                                            Enter the new wallet balance for {organization.companyName}.
+                                        </DialogDescription>
+                                    </DialogHeader>
 
-                                    <Button
-                                        onClick={() => setExtendOpen(true)}
-                                        variant="outline"
-                                        className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
-                                    >
-                                        <Clock className="h-6 w-6" />
-                                        <span>Extend Trial</span>
-                                    </Button>
-
-                                    <Button
-                                        variant="outline"
-                                        className="h-auto flex flex-col items-center justify-center p-4 space-y-2"
-                                    >
-                                        <CreditCard className="h-6 w-6" />
-                                        <span>Renew Subscription</span>
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Dialogs */}
-                        <Dialog open={extendOpen} onOpenChange={setExtendOpen}>
-                            <DialogContent className='z-[100]'>
-                                <DialogHeader>
-                                    <DialogTitle>Extend Trial Period</DialogTitle>
-                                    <DialogDescription>
-                                        Enter the number of days to extend the trial period for {organization.companyName}.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="space-y-4 py-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="rounded-full bg-primary/10 p-3">
-                                            <Clock className="h-6 w-6 text-primary" />
+                                    <div className="space-y-4 py-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="rounded-full bg-primary/10 p-3">
+                                                <Wallet className="h-6 w-6 text-primary" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-medium">Current Balance</h4>
+                                                <p className="text-sm text-gray-500">₹{orgCredits}</p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <h4 className="text-sm font-medium">Current Expiry Date</h4>
+
+                                        <Input
+                                            type="number"
+                                            value={newCredits}
+                                            onChange={(e) => setNewCredits(Number(e.target.value))}
+                                            placeholder="Enter new balance"
+                                            className="w-full"
+                                            min="0"
+                                        />
+                                    </div>
+
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setUpdateCreditsOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={updateWalletBalance}>
+                                            Update Balance
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Add New User</DialogTitle>
+                                        <DialogDescription>
+                                            Add a new user to {organization.companyName}. The user will receive an email invitation.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label htmlFor="firstName" className="text-sm font-medium">
+                                                    First Name
+                                                </label>
+                                                <Input
+                                                    id="firstName"
+                                                    placeholder="John"
+                                                    value={newUser.firstName}
+                                                    onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label htmlFor="lastName" className="text-sm font-medium">
+                                                    Last Name
+                                                </label>
+                                                <Input
+                                                    id="lastName"
+                                                    placeholder="Doe"
+                                                    value={newUser.lastName}
+                                                    onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="email" className="text-sm font-medium">
+                                                Email
+                                            </label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                placeholder="john.doe@example.com"
+                                                value={newUser.email}
+                                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="whatsappNo" className="text-sm font-medium">
+                                                WhatsApp Number
+                                            </label>
+                                            <Input
+                                                id="whatsappNo"
+                                                placeholder="+1234567890"
+                                                value={newUser.whatsappNo}
+                                                onChange={(e) => setNewUser({ ...newUser, whatsappNo: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="role" className="text-sm font-medium">
+                                                Role
+                                            </label>
+                                            <select
+                                                id="role"
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                value={newUser.role}
+                                                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                            >
+                                                <option value="member">Member</option>
+                                                <option value="manager">Manager</option>
+                                                <option value="orgAdmin">Admin</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={handleAddUser}>
+                                            Add User
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Delete Organization</DialogTitle>
+                                        <DialogDescription>
+                                            Are you sure you want to delete {organization.companyName}? This action cannot be undone and will delete all associated users and data.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="py-4">
+                                        <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
+                                            <Trash2 className="h-6 w-6 text-red-500" />
+                                            <div>
+                                                <h4 className="font-medium text-red-700">Warning</h4>
+                                                <p className="text-sm text-red-600">
+                                                    All users, tasks, tickets, and organization data will be permanently deleted.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4">
                                             <p className="text-sm text-gray-500">
-                                                {organization.trialExpires ?
-                                                    format(new Date(organization.trialExpires), "PPP") :
-                                                    "No trial date set"}
+                                                Please type <strong>{organization.companyName}</strong> to confirm deletion.
                                             </p>
-                                        </div>
-                                    </div>
-
-                                    <Input
-                                        type="number"
-                                        value={extensionDays}
-                                        onChange={(e) => setExtensionDays(Number(e.target.value))}
-                                        placeholder="Enter number of days"
-                                        className="w-full"
-                                        min="1"
-                                    />
-                                </div>
-
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setExtendOpen(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button onClick={handleExtendTrial}>
-                                        Extend Trial
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={revokeOpen} onOpenChange={setRevokeOpen}>
-                            <DialogContent className='z-[100]'>
-                                <DialogHeader>
-                                    <DialogTitle>Revoke Trial Period</DialogTitle>
-                                    <DialogDescription>
-                                        Are you sure you want to revoke the trial period for {organization.companyName}? This action cannot be undone.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="py-4">
-                                    <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
-                                        <Shield className="h-6 w-6 text-red-500" />
-                                        <div>
-                                            <h4 className="font-medium text-red-700">Warning</h4>
-                                            <p className="text-sm text-red-600">
-                                                Revoking the trial will immediately end access to premium features for this organization.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setRevokeOpen(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button variant="destructive" onClick={revokeTrialPeriod}>
-                                        Revoke Trial
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={updateCreditsOpen} onOpenChange={setUpdateCreditsOpen}>
-                            <DialogContent className='z-[100]'>
-                                <DialogHeader>
-                                    <DialogTitle>Update Wallet Balance</DialogTitle>
-                                    <DialogDescription>
-                                        Enter the new wallet balance for {organization.companyName}.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="space-y-4 py-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="rounded-full bg-primary/10 p-3">
-                                            <Wallet className="h-6 w-6 text-primary" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="text-sm font-medium">Current Balance</h4>
-                                            <p className="text-sm text-gray-500">₹{orgCredits}</p>
-                                        </div>
-                                    </div>
-
-                                    <Input
-                                        type="number"
-                                        value={newCredits}
-                                        onChange={(e) => setNewCredits(Number(e.target.value))}
-                                        placeholder="Enter new balance"
-                                        className="w-full"
-                                        min="0"
-                                    />
-                                </div>
-
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setUpdateCreditsOpen(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button onClick={updateWalletBalance}>
-                                        Update Balance
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                            <DialogContent className='z-[100]'>
-                                <DialogHeader>
-                                    <DialogTitle>Add New User</DialogTitle>
-                                    <DialogDescription>
-                                        Add a new user to {organization.companyName}. The user will receive an email invitation.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label htmlFor="firstName" className="text-sm font-medium">
-                                                First Name
-                                            </label>
                                             <Input
-                                                id="firstName"
-                                                placeholder="John"
-                                                value={newUser.firstName}
-                                                onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label htmlFor="lastName" className="text-sm font-medium">
-                                                Last Name
-                                            </label>
-                                            <Input
-                                                id="lastName"
-                                                placeholder="Doe"
-                                                value={newUser.lastName}
-                                                onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                                                className="mt-2"
+                                                placeholder={organization.companyName}
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label htmlFor="email" className="text-sm font-medium">
-                                            Email
-                                        </label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            placeholder="john.doe@example.com"
-                                            value={newUser.email}
-                                            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="whatsappNo" className="text-sm font-medium">
-                                            WhatsApp Number
-                                        </label>
-                                        <Input
-                                            id="whatsappNo"
-                                            placeholder="+1234567890"
-                                            value={newUser.whatsappNo}
-                                            onChange={(e) => setNewUser({ ...newUser, whatsappNo: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="role" className="text-sm font-medium">
-                                            Role
-                                        </label>
-                                        <select
-                                            id="role"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            value={newUser.role}
-                                            onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                                        >
-                                            <option value="member">Member</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="orgAdmin">Admin</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button onClick={handleAddUser}>
-                                        Add User
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                            <DialogContent className='z-[100]'>
-                                <DialogHeader>
-                                    <DialogTitle>Delete Organization</DialogTitle>
-                                    <DialogDescription>
-                                        Are you sure you want to delete {organization.companyName}? This action cannot be undone and will delete all associated users and data.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="py-4">
-                                    <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
-                                        <Trash2 className="h-6 w-6 text-red-500" />
-                                        <div>
-                                            <h4 className="font-medium text-red-700">Warning</h4>
-                                            <p className="text-sm text-red-600">
-                                                All users, tasks, tickets, and organization data will be permanently deleted.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4">
-                                        <p className="text-sm text-gray-500">
-                                            Please type <strong>{organization.companyName}</strong> to confirm deletion.
-                                        </p>
-                                        <Input
-                                            className="mt-2"
-                                            placeholder={organization.companyName}
-                                        />
-                                    </div>
-                                </div>
-
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button variant="destructive" onClick={handleDeleteOrganization}>
-                                        Delete Organization
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        {/* Edit User Dialog */}
-                        <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
-                            <DialogContent className='z-[100]'>
-                                <DialogHeader>
-                                    <DialogTitle>Edit User</DialogTitle>
-                                    <DialogDescription>
-                                        Update details for {selectedUser?.firstName} {selectedUser?.lastName}.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label htmlFor="editFirstName" className="text-sm font-medium">
-                                                First Name
-                                            </label>
-                                            <Input
-                                                id="editFirstName"
-                                                placeholder="John"
-                                                value={selectedUser?.firstName || ''}
-                                                onChange={(e) => setSelectedUser({ ...selectedUser, firstName: e.target.value })}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label htmlFor="editLastName" className="text-sm font-medium">
-                                                Last Name
-                                            </label>
-                                            <Input
-                                                id="editLastName"
-                                                placeholder="Doe"
-                                                value={selectedUser?.lastName || ''}
-                                                onChange={(e) => setSelectedUser({ ...selectedUser, lastName: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="editEmail" className="text-sm font-medium">
-                                            Email
-                                        </label>
-                                        <Input
-                                            id="editEmail"
-                                            type="email"
-                                            placeholder="john.doe@example.com"
-                                            value={selectedUser?.email || ''}
-                                            onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="editWhatsappNo" className="text-sm font-medium">
-                                            WhatsApp Number
-                                        </label>
-                                        <Input
-                                            id="editWhatsappNo"
-                                            placeholder="+1234567890"
-                                            value={selectedUser?.whatsappNo || ''}
-                                            onChange={(e) => setSelectedUser({ ...selectedUser, whatsappNo: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="editRole" className="text-sm font-medium">
-                                            Role
-                                        </label>
-                                        <select
-                                            id="editRole"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            value={selectedUser?.role || 'member'}
-                                            onChange={(e) => setSelectedUser({ ...selectedUser, role: e.target.value })}
-                                        >
-                                            <option value="member">Member</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="orgAdmin">Admin</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="editStatus" className="text-sm font-medium">
-                                            Status
-                                        </label>
-                                        <select
-                                            id="editStatus"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            value={selectedUser?.status || 'Active'}
-                                            onChange={(e) => setSelectedUser({ ...selectedUser, status: e.target.value })}
-                                        >
-                                            <option value="Active">Active</option>
-                                            <option value="Deactivated">Deactivated</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setEditUserOpen(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button onClick={handleUpdateUser}>
-                                        Update User
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        {/* Delete User Dialog */}
-                        <Dialog open={deleteUserDialog} onOpenChange={setDeleteUserDialog}>
-                            <DialogContent className='z-[100]'>
-                                <DialogHeader>
-                                    <DialogTitle>Delete User</DialogTitle>
-                                    <DialogDescription>
-                                        Are you sure you want to delete this user? This action cannot be undone.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                    <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
-                                        <Trash2 className="h-6 w-6 text-red-500" />
-                                        <div>
-                                            <h4 className="font-medium text-red-700">Warning</h4>
-                                            <p className="text-sm text-red-600">
-                                                This will permanently remove the user from this organization.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setDeleteUserDialog(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button variant="destructive" onClick={handleDeleteUser}>
-                                        Delete User
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        {/* View User Details Dialog */}
-                        <Dialog open={viewUserDetails} onOpenChange={setViewUserDetails}>
-                            <DialogContent className="max-w-md z-[100]">
-                                <DialogHeader>
-                                    <DialogTitle>User Details</DialogTitle>
-                                    <DialogDescription>
-                                        Complete information for this user
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="space-y-4">
-                                    <div className="flex justify-center mb-4">
-                                        <Avatar className="h-20 w-20">
-                                            {selectedUser?.profilePic ? (
-                                                <AvatarImage src={selectedUser.profilePic} alt={`${selectedUser.firstName} ${selectedUser.lastName}`} />
-                                            ) : (
-                                                <AvatarFallback className="text-xl">
-                                                    {selectedUser?.firstName?.charAt(0)}{selectedUser?.lastName?.charAt(0)}
-                                                </AvatarFallback>
-                                            )}
-                                        </Avatar>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-500">Name</h4>
-                                            <p>{selectedUser?.firstName} {selectedUser?.lastName}</p>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-500">Status</h4>
-                                            <Badge >
-                                                {selectedUser?.status || 'Active'}
-                                            </Badge>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-500">Email</h4>
-                                            <p className="truncate">{selectedUser?.email}</p>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-500">WhatsApp</h4>
-                                            <p>{selectedUser?.whatsappNo}</p>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-500">Role</h4>
-                                            <Badge variant={selectedUser?.role === 'orgAdmin' ? 'default' : 'outline'}>
-                                                {selectedUser?.role === 'orgAdmin' ? 'Admin' :
-                                                selectedUser?.role === 'manager' ? 'Manager' : 'Member'}
-                                            </Badge>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-500">Joined</h4>
-                                            <p>{selectedUser?.createdAt ?
-                                                format(new Date(selectedUser.createdAt), "MMM d, yyyy") :
-                                                "Unknown"}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <DialogFooter className="flex justify-between space-x-2">
-                                    <Button variant="outline" onClick={() => setViewUserDetails(false)}>
-                                        Close
-                                    </Button>
-                                    <div className="space-x-2">
-                                        <Button variant="outline" onClick={() => {
-                                            setViewUserDetails(false);
-                                            setSelectedUser(selectedUser);
-                                            setEditUserOpen(true);
-                                        }}>
-                                            <Pencil className="mr-2 h-4 w-4" />
-                                            Edit
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+                                            Cancel
                                         </Button>
-                                        <Button variant="destructive" onClick={() => {
-                                            setViewUserDetails(false);
-                                            confirmDeleteUser(selectedUser?._id);
-                                        }}>
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Delete
+                                        <Button variant="destructive" onClick={handleDeleteOrganization}>
+                                            Delete Organization
                                         </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            {/* Edit User Dialog */}
+                            <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Edit User</DialogTitle>
+                                        <DialogDescription>
+                                            Update details for {selectedUser?.firstName} {selectedUser?.lastName}.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label htmlFor="editFirstName" className="text-sm font-medium">
+                                                    First Name
+                                                </label>
+                                                <Input
+                                                    id="editFirstName"
+                                                    placeholder="John"
+                                                    value={selectedUser?.firstName || ''}
+                                                    onChange={(e) => setSelectedUser({ ...selectedUser, firstName: e.target.value })}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label htmlFor="editLastName" className="text-sm font-medium">
+                                                    Last Name
+                                                </label>
+                                                <Input
+                                                    id="editLastName"
+                                                    placeholder="Doe"
+                                                    value={selectedUser?.lastName || ''}
+                                                    onChange={(e) => setSelectedUser({ ...selectedUser, lastName: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="editEmail" className="text-sm font-medium">
+                                                Email
+                                            </label>
+                                            <Input
+                                                id="editEmail"
+                                                type="email"
+                                                placeholder="john.doe@example.com"
+                                                value={selectedUser?.email || ''}
+                                                onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="editWhatsappNo" className="text-sm font-medium">
+                                                WhatsApp Number
+                                            </label>
+                                            <Input
+                                                id="editWhatsappNo"
+                                                placeholder="+1234567890"
+                                                value={selectedUser?.whatsappNo || ''}
+                                                onChange={(e) => setSelectedUser({ ...selectedUser, whatsappNo: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="editRole" className="text-sm font-medium">
+                                                Role
+                                            </label>
+                                            <select
+                                                id="editRole"
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                value={selectedUser?.role || 'member'}
+                                                onChange={(e) => setSelectedUser({ ...selectedUser, role: e.target.value })}
+                                            >
+                                                <option value="member">Member</option>
+                                                <option value="manager">Manager</option>
+                                                <option value="orgAdmin">Admin</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="editStatus" className="text-sm font-medium">
+                                                Status
+                                            </label>
+                                            <select
+                                                id="editStatus"
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                value={selectedUser?.status || 'Active'}
+                                                onChange={(e) => setSelectedUser({ ...selectedUser, status: e.target.value })}
+                                            >
+                                                <option value="Active">Active</option>
+                                                <option value="Deactivated">Deactivated</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setEditUserOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={handleUpdateUser}>
+                                            Update User
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            {/* Delete User Dialog */}
+                            <Dialog open={deleteUserDialog} onOpenChange={setDeleteUserDialog}>
+                                <DialogContent className='z-[100]'>
+                                    <DialogHeader>
+                                        <DialogTitle>Delete User</DialogTitle>
+                                        <DialogDescription>
+                                            Are you sure you want to delete this user? This action cannot be undone.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4">
+                                        <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
+                                            <Trash2 className="h-6 w-6 text-red-500" />
+                                            <div>
+                                                <h4 className="font-medium text-red-700">Warning</h4>
+                                                <p className="text-sm text-red-600">
+                                                    This will permanently remove the user from this organization.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setDeleteUserDialog(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button variant="destructive" onClick={handleDeleteUser}>
+                                            Delete User
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            {/* View User Details Dialog */}
+                            <Dialog open={viewUserDetails} onOpenChange={setViewUserDetails}>
+                                <DialogContent className="max-w-md z-[100]">
+                                    <DialogHeader>
+                                        <DialogTitle>User Details</DialogTitle>
+                                        <DialogDescription>
+                                            Complete information for this user
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="space-y-4">
+                                        <div className="flex justify-center mb-4">
+                                            <Avatar className="h-20 w-20">
+                                                {selectedUser?.profilePic ? (
+                                                    <AvatarImage src={selectedUser.profilePic} alt={`${selectedUser.firstName} ${selectedUser.lastName}`} />
+                                                ) : (
+                                                    <AvatarFallback className="text-xl">
+                                                        {selectedUser?.firstName?.charAt(0)}{selectedUser?.lastName?.charAt(0)}
+                                                    </AvatarFallback>
+                                                )}
+                                            </Avatar>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-500">Name</h4>
+                                                <p>{selectedUser?.firstName} {selectedUser?.lastName}</p>
+                                            </div>
+
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-500">Status</h4>
+                                                <Badge >
+                                                    {selectedUser?.status || 'Active'}
+                                                </Badge>
+                                            </div>
+
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-500">Email</h4>
+                                                <p className="truncate">{selectedUser?.email}</p>
+                                            </div>
+
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-500">WhatsApp</h4>
+                                                <p>{selectedUser?.whatsappNo}</p>
+                                            </div>
+
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-500">Role</h4>
+                                                <Badge variant={selectedUser?.role === 'orgAdmin' ? 'default' : 'outline'}>
+                                                    {selectedUser?.role === 'orgAdmin' ? 'Admin' :
+                                                        selectedUser?.role === 'manager' ? 'Manager' : 'Member'}
+                                                </Badge>
+                                            </div>
+
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-500">Joined</h4>
+                                                <p>{selectedUser?.createdAt ?
+                                                    format(new Date(selectedUser.createdAt), "MMM d, yyyy") :
+                                                    "Unknown"}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <DialogFooter className="flex justify-between space-x-2">
+                                        <Button variant="outline" onClick={() => setViewUserDetails(false)}>
+                                            Close
+                                        </Button>
+                                        <div className="space-x-2">
+                                            <Button variant="outline" onClick={() => {
+                                                setViewUserDetails(false);
+                                                setSelectedUser(selectedUser);
+                                                setEditUserOpen(true);
+                                            }}>
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                Edit
+                                            </Button>
+                                            <Button variant="destructive" onClick={() => {
+                                                setViewUserDetails(false);
+                                                confirmDeleteUser(selectedUser?._id);
+                                            }}>
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 }

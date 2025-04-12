@@ -20,12 +20,18 @@ interface Organization {
     trialExpires: Date;
     isPro?: boolean;
     subscriptionExpires?: Date;
+    subscribedPlan?: string;  // Added this property
 }
 
 type AdminSidebarProps = {
     isCollapsed: boolean;
     setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
 };
+
+interface CustomDateRange {
+    from: Date;
+    to: Date;
+}
 
 export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
     const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -40,7 +46,8 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
     const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
     const [selectedOrgName, setSelectedOrgName] = useState<string>("");
     const [extensionDays, setExtensionDays] = useState<number | undefined>();
-
+    // Add this state
+    const [customDateRange, setCustomDateRange] = useState<CustomDateRange | null>(null);
     const router = useRouter();
 
     const handleExtendTrial = async () => {
@@ -92,6 +99,8 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
         setSelectedOrgName(orgName);
         setRevokeOpen(true);
     };
+
+
     // Inside your component
 
     useEffect(() => {
@@ -127,7 +136,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                     return !org.isPro && trialExpires > today;
                 case "Trial Expired":
                     return !org.isPro && trialExpires < today;
-                case "Expired":
+                case "Subscription Expired":
                     return subscriptionExpires && subscriptionExpires < today;
                 default:
                     return true; // "All" filter
@@ -159,6 +168,13 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
     }, [statusFilter, selectedDateFilter, organizations, searchTerm]);
 
     const getDateRange = (filter: string) => {
+        // If using a custom date range, return it directly
+        if (filter === "Custom" && customDateRange) {
+            return {
+                startDate: customDateRange.from,
+                endDate: customDateRange.to
+            };
+        }
         const today = new Date();
         let startDate, endDate;
 
@@ -206,8 +222,14 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
         return { startDate, endDate };
     };
 
-    const handleDateFilterChange = (filter: string) => {
+    const handleDateFilterChange = (filter: string, dateRange?: { from: Date; to: Date }) => {
         setSelectedDateFilter(filter);
+
+        if (filter === "Custom" && dateRange) {
+            setCustomDateRange(dateRange);
+        } else {
+            setCustomDateRange(null);
+        }
     };
 
 
@@ -280,19 +302,27 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
         const trialExpires = new Date(org.trialExpires);
         const subscriptionExpires = org.subscriptionExpires ? new Date(org.subscriptionExpires) : null;
 
-        if (org.isPro && subscriptionExpires && subscriptionExpires > today) {
+        // Check for active subscription first - this takes priority over everything else
+        if (subscriptionExpires && subscriptionExpires > today) {
             return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-        } else if (!org.isPro && trialExpires > today) {
-            return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
-        } else if (!org.isPro && trialExpires < today) {
-            return <Badge className="bg-amber-100 text-amber-800">Trial Expired</Badge>;
-        } else if (subscriptionExpires && subscriptionExpires < today) {
+        }
+        // Then check for expired subscription
+        else if (subscriptionExpires && subscriptionExpires < today) {
             return <Badge className="bg-red-100 text-red-800">Expired</Badge>;
-        } else {
+        }
+        // Only check trial status if there's no subscription data
+        else if (!subscriptionExpires) {
+            // Check trial status
+            if (trialExpires > today) {
+                return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
+            } else {
+                return <Badge className="bg-amber-100 text-amber-800">Trial Expired</Badge>;
+            }
+        }
+        else {
             return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>;
         }
     };
-
     if (loading) return (
         <div className="flex min-h-screen items-center justify-center bg-[#f8f9fa]">
             <div className="text-gray-600 flex flex-col items-center">
@@ -318,7 +348,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
     return (
         <div className="flex min-h-screen overflow-x-hidden w-full max-w-screen mt-12 bg-[#f8f9fa] text-gray-800">
             <div className={cn("flex-1 transition-all duration-300", isCollapsed ? "ml-0" : "ml-64")}>
-                <main className="p-6 w-[80%]">
+                <main className="p-6 ">
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-bold text-gray-800">Organizations</h1>
 
@@ -339,7 +369,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
 
                     {/* Status Filter Buttons */}
                     <div className="flex flex-wrap gap-2 mb-6">
-                        {["All", "Active", "Trial", "Trial Expired", "Expired"].map((status) => (
+                        {["All", "Active", "Trial", "Trial Expired", "Subscription Expired"].map((status) => (
                             <Button
                                 key={status}
                                 variant={statusFilter === status ? "default" : "outline"}
@@ -357,7 +387,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                     <DateFilters onDateFilterChange={handleDateFilterChange} />
 
                     {/* Table Layout */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+                    <div className="bg-white rounded-xl w-full max-w-screen shadow-sm border border-gray-200 overflow- mt-6">
                         {filteredOrganizations.length === 0 ? (
                             <div className="p-8 text-center text-gray-500">
                                 <div className="mx-auto w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-gray-100">
@@ -367,7 +397,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                                 <p className="mt-1 text-sm">Try adjusting your search or filter criteria</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto w-full max-w-screen">
                                 <table className="min-w-full divide-y  divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
@@ -376,7 +406,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trial Expires</th>
-                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -412,7 +442,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                {/* <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className="flex justify-center space-x-2">
                                                         <Button
                                                             onClick={() => openExtendDialog(org._id, org.companyName)}
@@ -439,7 +469,7 @@ export default function WorkspacesTable({ isCollapsed, setIsCollapsed }: AdminSi
                                                             View
                                                         </Button>
                                                     </div>
-                                                </td>
+                                                </td> */}
                                             </tr>
                                         ))}
                                     </tbody>

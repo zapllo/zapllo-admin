@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import {
+  BarChart2,
   Bell,
   BellDot,
   Book,
@@ -39,6 +40,7 @@ import { Button } from "../ui/button";
 // import { ModeToggle } from "../globals/mode-toggle";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import {motion} from 'framer-motion'
 // import { BellIcon } from "@radix-ui/react-icons";
 import { Label } from "../ui/label";
 
@@ -118,7 +120,7 @@ const InfoBar = (props: Props) => {
 
   const getPageTitle = () => {
     if (pathName === "/dashboard") {
-      return "Admin Dashboard ";
+      return "Task Delegation App Report";
     } else if (pathName === "/tickets") {
       return "Tickets Management";
     } else if (pathName === "/workspaces") {
@@ -176,6 +178,9 @@ const InfoBar = (props: Props) => {
     }
   };
 
+  const isDashboardReport = pathName === "/dashboard";
+  const pageTitle = getPageTitle();
+
   return (
     <>
       {userLoading && (
@@ -195,24 +200,34 @@ const InfoBar = (props: Props) => {
       </div>
   </div>
       )}
-      <div className="  fixed  w-[100%]  z-[10]">
-        <div className="  items-center w-[100%] py-2 ml-6 z-[10] flex flex-row  bg-[#ffffff]">
-          {/* <img src='/icons/ellipse.png' className='absolute h-[50%] z-[10]   opacity-30 -ml-32 ' /> */}
-          <div
-            className={`flex   items-center   ml-[6%] w-screen
-              }`}
-          >
-            <h1 className={`text-md mt-1 text-black font-bold `}>
-              {getPageTitle()}
-            </h1>
-          </div>
+   <div className="fixed w-[100%] z-[10]">
+        <div className="w-[100%] py-2 z-[10] flex flex-row bg-[#ffffff] border-b">
+          {isDashboardReport ? (
+            // Centered title for Task Delegation App Report
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center justify-center w-full px-6"
+            >
+              <h1 className="text-2xl md:text-3xl mt-2 font-bold bg-gradient-to-r from-[#5b46d9] to-[#7366ff] bg-clip-text text-transparent">
+                {pageTitle}
+              </h1>
+              <div className="flex items-center mt-1 text-gray-500 text-sm">
+                <BarChart2 className="h-4 w-4 mr-1" />
+                <span>Performance Analytics & Insights</span>
+              </div>
+            </motion.div>
+          ) : (
+            // Regular title alignment for other pages
+            <div className={`flex items-center ml-[6%] w-screen`}>
+              <h1 className={`text-lg mt-1 text-black font-bold`}>
+                {pageTitle}
+              </h1>
+            </div>
+          )}
 
-          <div className="flex items-center  gap-4 justify-end mx-12 w-full  font-bold">
-            {/* <h1 className='text-xs mt- '>Access Expires in <span className='text-red-500 font-bold'>{remainingTime || 'Loading...'}</span></h1> */}
-            {/* <Label className="text-xs p-2 bg-red-500 rounded-full">
-              <h1>Trial Expired</h1>
-            </Label> */}
-            {/* <ModeToggle /> */}
+          <div className={`flex items-center gap-4 justify-end mx-12 ${isDashboardReport ? 'absolute right-0' : 'w-full'} font-bold`}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="bg-gradient-to-r from-[#815BF5] via-[#FC8929] to-[#FC8929] p-[1px] rounded-full">
@@ -224,7 +239,6 @@ const InfoBar = (props: Props) => {
                     <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full border-2 border-[#04061e]"></span>
                   </Button>
                 </div>
-
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 -ml-36">
                 <DropdownMenuLabel>
@@ -235,8 +249,7 @@ const InfoBar = (props: Props) => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-
-                <div className="flex gap-2 ">
+                <div className="flex gap-2">
                   <div className="h-9 w-9 text-xs text-white border-gray-800 items-center cursor-pointer flex justify-center border bg-gray-500 rounded-full">
                     {profilePic ? (
                       <img src={profilePic} alt="Profile" className="h-full w-full rounded-full object-cover" />
@@ -248,11 +261,10 @@ const InfoBar = (props: Props) => {
                     )}
                   </div>
 
-
                   <div className="">
-                    <h1 className="text-[#000000] text-sm ">{firstName}</h1>
+                    <h1 className="text-[#000000] text-sm">{firstName}</h1>
                     {role === "orgAdmin" ? (
-                      <h1 className=" text-[10px] text-muted-foreground font-thin ">
+                      <h1 className="text-[10px] text-muted-foreground font-thin">
                         Admin
                       </h1>
                     ) : role === "manager" ? (
@@ -288,7 +300,6 @@ const InfoBar = (props: Props) => {
                     <DropdownMenuItem className="gap-1">
                       <User2 className="h-4" />
                       Profile
-                      {/* <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut> */}
                     </DropdownMenuItem>
                   </Link>
                   {role === "orgAdmin" ? (
@@ -296,7 +307,6 @@ const InfoBar = (props: Props) => {
                       <DropdownMenuItem className="gap-1">
                         <DollarSign className="h-4" />
                         Billing
-                        {/* <DropdownMenuShortcut>⌘B</DropdownMenuShortcut> */}
                       </DropdownMenuItem>
                     </Link>
                   ) : (
@@ -307,7 +317,6 @@ const InfoBar = (props: Props) => {
                     <DropdownMenuItem className="gap-1">
                       <Settings className="h-4" />
                       Settings
-                      {/* <DropdownMenuShortcut>⌘S</DropdownMenuShortcut> */}
                     </DropdownMenuItem>
                   </Link>
                 </DropdownMenuGroup>
@@ -315,13 +324,12 @@ const InfoBar = (props: Props) => {
                 <DropdownMenuItem className="gap-1" onClick={logout}>
                   <LogOut className="h-4" />
                   Log out
-                  {/* <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut> */}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
-      </div >
+      </div>
     </>
   );
 };

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
-import { Eye, Search, Filter, Calendar } from "lucide-react";
+import { Eye, Search, Filter, Calendar, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import TicketStats from "./cards/ticketStats";
@@ -12,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import Link from "next/link";
 
 // Interfaces for data
 interface IUser {
@@ -133,6 +135,17 @@ const TicketsTable = ({ isCollapsed, setIsCollapsed }: AdminSidebarProps) => {
         )}
       >
         <main className="p-6">
+        <Tabs defaultValue="support" className="w-full mb-6">
+            <TabsList className="grid w-full md:w-auto grid-cols-2">
+              <TabsTrigger value="support">Support Tickets</TabsTrigger>
+              <TabsTrigger value="crm">
+                <Link href="/crm-tickets" className="flex items-center">
+                  CRM Tickets <ChevronRight className="ml-1 h-4 w-4" />
+                </Link>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <TicketStats
             statsData={{
               totalTickets: tickets.length,
