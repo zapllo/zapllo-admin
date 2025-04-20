@@ -5,9 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 connectDB();
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
-        const eventId = params.id;
+        const eventId = (await params).id
 
         const event = await Event.findById(eventId)
             .populate({
@@ -35,10 +37,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         return NextResponse.json({ error: error.message }, { status: 400 });
     }
 }
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
+        const eventId = (await params).id
         const userId = await getDataFromToken(request);
-        const eventId = params.id;
         const reqBody = await request.json();
 
         const { title, description, coverImage, startDate, endDate, location, isVirtual, meetingLink, capacity } = reqBody;

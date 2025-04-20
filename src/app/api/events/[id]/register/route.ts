@@ -5,10 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 connectDB();
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
+        const eventId = (await params).id
         const userId = await getDataFromToken(request);
-        const eventId = params.id;
 
         // Check if event exists
         const event = await Event.findById(eventId);
@@ -40,11 +42,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
+        const eventId = (await params).id
         const userId = await getDataFromToken(request);
-        const eventId = params.id;
-
         // Find the event and pull the user's registration
         const event = await Event.findByIdAndUpdate(
             eventId,

@@ -5,10 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 connectDB();
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
+        const eventId = (await params).id
         const userId = await getDataFromToken(request);
-        const eventId = params.id;
         const { text } = await request.json();
 
         // Check if event exists
