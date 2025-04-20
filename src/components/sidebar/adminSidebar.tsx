@@ -67,7 +67,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
         { name: "Leads", icon: UserRoundSearch, link: "/admin/leads" },
         { name: "Roles & Permissions", icon: UserPlus2, link: "/admin/roles-permissions" },
         { name: "Task Templates", icon: Grid2X2PlusIcon, link: "/admin/task-templates" },
-        { name: "Events", icon: MegaphoneIcon, link: "/admin/events" },
+        { name: "Events", icon: MegaphoneIcon, link: "/events" },
         { name: "Support Dashboard", icon: CircleHelpIcon, link: "/admin/support" },
     ];
 
